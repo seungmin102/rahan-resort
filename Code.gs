@@ -116,6 +116,14 @@ function doPost(e){
         updateApplicationField(body.id, 'reservationNo', normalizeReservationNo(body.reservationNo));
         return jsonResponse({ ok:true });
       }
+      if(action === 'deleteApplication'){
+        deleteApplication(body.id);
+        return jsonResponse({ ok:true });
+      }
+      if(action === 'deleteApplicationsBulk'){
+        const result = deleteApplicationsBulk(body.ids);
+        return jsonResponse({ ok:true, data: result });
+      }
       if(action === 'blockDate'){
         blockDate(body.date);
         return jsonResponse({ ok:true });
@@ -413,6 +421,51 @@ function updateStatusBulk(ids, status){
 
   const notFound = Object.keys(wanted).filter(id => !found[id]);
   return { updated: targetRows.length, notFound };
+}
+
+/* 신청 삭제. 시트에서 행을 실제로 지우므로 API 로는 되돌릴 수 없다.
+   (구글 시트의 파일 > 버전 기록으로는 복구 가능하다.) */
+function deleteApplication(id){
+  const sheet = getSheet(APPS_SHEET_NAME);
+  const row = findRowById(sheet, id);
+  if(row === -1) throw new Error('not_found');
+  sheet.deleteRow(row);
+  return true;
+}
+
+function deleteApplicationsBulk(ids){
+  if(!Array.isArray(ids)) throw new Error('invalid_ids');
+  if(ids.length === 0) return { deleted: 0, notFound: [] };
+  if(ids.length > MAX_BULK_IDS) throw new Error('too_many_ids');
+
+  const wanted = {};
+  ids.forEach(id => { wanted[String(id)] = true; });
+
+  const sheet = getSheet(APPS_SHEET_NAME);
+  const idRows = readColumn(sheet, 1);
+  const found = {};
+  const targetRows = [];
+  for(let i=0; i<idRows.length; i++){
+    const rowId = String(idRows[i][0]);
+    if(wanted[rowId]){
+      targetRows.push(i + 2);
+      found[rowId] = true;
+    }
+  }
+
+  /* 아래쪽 행부터 지운다. 위에서부터 지우면 남은 행 번호가 한 칸씩 당겨져
+     뒤 대상들이 어긋난다. 연속된 구간은 deleteRows 로 한 번에 처리한다. */
+  let i = targetRows.length - 1;
+  while(i >= 0){
+    const end = targetRows[i];
+    let start = end;
+    while(i > 0 && targetRows[i-1] === start - 1){ i--; start = targetRows[i]; }
+    sheet.deleteRows(start, end - start + 1);
+    i--;
+  }
+
+  const notFound = Object.keys(wanted).filter(id => !found[id]);
+  return { deleted: targetRows.length, notFound };
 }
 
 function lookupApplications(name, empid){

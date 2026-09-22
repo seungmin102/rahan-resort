@@ -103,6 +103,8 @@ body는 JSON 문자열, `{ "action": "...", ...payload }` 형태.
 | `updateStatus` | `{ id, status }` | 상태 변경 (대기/승인/거절) |
 | `updateReservation` | `{ id, reservationNo }` | 예약번호 기록 |
 | `updateStatusBulk` | `{ ids: string[], status }` | 여러 건 상태 일괄 변경. 시트를 한 번만 읽고 status 열을 한 번의 `setValues`로 기록. `{ updated, notFound[] }` 반환 (최대 200건) |
+| `deleteApplication` | `{ id }` | 신청 1건 삭제 (시트에서 행 제거) |
+| `deleteApplicationsBulk` | `{ ids: string[] }` | 여러 건 삭제. 행 번호가 밀리지 않도록 **아래쪽 행부터** 지우고 연속 구간은 `deleteRows` 로 묶어 처리. `{ deleted, notFound[] }` 반환 (최대 200건) |
 | `blockDate` | `{ date }` | 마감일 추가 (형식·접수기간·일~목요일 여부를 서버에서도 검증) |
 | `unblockDate` | `{ date }` | 마감일 해제 |
 
@@ -165,6 +167,8 @@ body는 JSON 문자열, `{ "action": "...", ...payload }` 형태.
 - 검색(이름/사번/신청번호), 날짜 필터, 상태 필터 탭
 - 목록 테이블: 신청번호, 이름, 사번, 지점, 룸타입, 이용일, 인원, 박수, 요청사항, 상태(드롭다운으로 즉시 변경), **예약번호(직접 입력 가능, blur 시 자동 저장)**
 - 체크박스 다중 선택 → 일괄 승인/거절 (`updateStatusBulk` 요청 1건으로 처리)
+- **삭제**: 행마다 삭제 버튼, 다중 선택 시 일괄 삭제. 확인 창을 거치고, 다른 쓰기와 같이 화면에서 먼저 지운 뒤 요청을 보내며 실패하면 원래 자리로 되돌린다.
+  **시트에서 행을 실제로 지우므로 API 로는 복구되지 않는다** — 되돌리려면 구글 시트의 파일 > 버전 기록을 써야 한다(확인 창에도 같은 안내가 있다).
 - CSV(엑셀) 다운로드 (신청번호 포함 전체 컬럼)
 - 20초 자동 새로고침 + 수동 새로고침 버튼. **표 안을 편집 중(입력칸/드롭다운에 포커스)일 때는
   다시 그리지 않고 보류했다가, 포커스가 빠질 때 반영한다**(`requestRender`/`pendingRender`).

@@ -86,6 +86,10 @@
   .bulk-bar button:hover{ background: rgba(255,255,255,0.12); }
   .bulk-bar button.primary{ background: var(--green); border-color: var(--green); color: #fff; }
   .bulk-bar button.danger{ background: var(--red); border-color: var(--red); color: #fff; }
+  .bulk-bar button.delete{ border-color: rgba(255,255,255,0.45); color: #FFC9C9; }
+  .bulk-bar button.delete:hover{ background: rgba(220,38,38,0.35); }
+  .deleteBtn{ font-family: inherit; font-size: 12px; padding: 5px 9px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--ink-soft); cursor: pointer; white-space: nowrap; }
+  .deleteBtn:hover{ border-color: var(--red); color: var(--red); background: rgba(220,38,38,0.06); }
 
   table{ width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   thead tr{ background: var(--bg); }
@@ -184,6 +188,7 @@
     <div class="spacer"></div>
     <button class="primary" id="bulkApprove">일괄 승인</button>
     <button class="danger" id="bulkReject">일괄 거절</button>
+    <button class="delete" id="bulkDelete">일괄 삭제</button>
     <button id="bulkClear">선택 해제</button>
   </div>
 
@@ -192,7 +197,7 @@
       <thead>
         <tr>
           <th style="width:36px;"><input type="checkbox" id="selectAll"></th>
-          <th>신청번호</th><th>이름</th><th>사번</th><th>지점</th><th>룸 타입</th><th>이용일</th><th>인원</th><th>박수</th><th>요청사항</th><th>상태</th><th>예약번호</th>
+          <th>신청번호</th><th>이름</th><th>사번</th><th>지점</th><th>룸 타입</th><th>이용일</th><th>인원</th><th>박수</th><th>요청사항</th><th>상태</th><th>예약번호</th><th style="width:44px;"></th>
         </tr>
       </thead>
       <tbody id="tableBody"></tbody>
@@ -478,6 +483,9 @@ function renderAdminTable(){
       <td data-label="예약번호">
         <input type="text" class="reservationInput" data-id="${item.id}" value="${escapeHtml(item.reservationNo || '')}" placeholder="예: HTL-1234">
       </td>
+      <td data-label="">
+        <button type="button" class="deleteBtn" data-id="${item.id}" title="이 신청 삭제" aria-label="신청번호 ${escapeHtml(item.appNo || '')} 삭제">삭제</button>
+      </td>
     </tr>`;
   }).join('');
 
@@ -500,6 +508,10 @@ function renderAdminTable(){
       }
     });
     input.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') input.blur(); });
+  });
+
+  document.querySelectorAll('.deleteBtn').forEach(btn=>{
+    btn.addEventListener('click', ()=> deleteApplications([btn.dataset.id]));
   });
 
   document.querySelectorAll('.rowCheck').forEach(cb=>{
@@ -600,6 +612,45 @@ async function bulkUpdateStatus(status){
     alert(`일괄 ${status} 처리에 실패했습니다. 선택은 그대로 두었으니 다시 시도해 주세요.`);
   }
 }
+/* 삭제는 시트에서 행을 실제로 지운다. 확인을 한 번 받고, 다른 쓰기와 마찬가지로
+   화면에서 먼저 지운 뒤 요청을 보낸다. 실패하면 원래 자리에 되돌린다. */
+async function deleteApplications(ids){
+  const items = ids.map(id => allApplications.find(a=>a.id===id)).filter(Boolean);
+  if(items.length === 0) return;
+
+  const what = items.length === 1
+    ? `신청번호 ${items[0].appNo || '-'} (${items[0].name}) 건을 삭제할까요?`
+    : `선택한 ${items.length}건을 삭제할까요?`;
+  if(!confirm(what + '\n\n시트에서 지워지며 이 화면에서는 되돌릴 수 없습니다.\n(구글 시트의 파일 > 버전 기록으로는 복구할 수 있습니다.)')) return;
+
+  const removed = [];
+  ids.forEach(id=>{
+    const index = allApplications.findIndex(a=>a.id===id);
+    if(index !== -1) removed.push({ index, item: allApplications[index] });
+    selectedIds.delete(id);
+  });
+  allApplications = allApplications.filter(a => ids.indexOf(a.id) === -1);
+  lastDataSignature = null;
+  renderAdminTable();
+
+  try{
+    if(ids.length === 1){
+      await apiPost('deleteApplication', { id: ids[0] });
+    } else {
+      await apiPost('deleteApplicationsBulk', { ids });
+    }
+  }catch(err){
+    console.error(err);
+    // 지운 순서와 무관하게 원래 위치로 복원한다
+    removed.sort((a,b)=> a.index - b.index)
+           .forEach(r => allApplications.splice(r.index, 0, r.item));
+    lastDataSignature = null;
+    renderAdminTable();
+    alert('삭제에 실패했습니다. 목록을 원래대로 되돌렸습니다.');
+  }
+}
+
+document.getElementById('bulkDelete').addEventListener('click', ()=> deleteApplications([...selectedIds]));
 document.getElementById('bulkApprove').addEventListener('click', ()=> bulkUpdateStatus('승인'));
 document.getElementById('bulkReject').addEventListener('click', ()=> bulkUpdateStatus('거절'));
 document.getElementById('bulkClear').addEventListener('click', ()=>{
