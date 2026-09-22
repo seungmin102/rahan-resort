@@ -33,6 +33,24 @@ Claude 아티팩트(claude.ai) 기반이 아니라, **외부에서 로그인 없
   - 액세스 권한(Who has access): **전체(Anyone)** — 로그인 불필요.
   - 배포 URL 예시: `https://script.google.com/macros/s/{DEPLOYMENT_ID}/exec`
   - **주의**: "새 배포"가 아니라 "배포 관리 → 기존 배포 편집"으로 재배포해야 URL이 유지됨.
+
+#### Code.gs 수정 후 재배포 절차 (매번 이대로)
+코드를 고쳐도 **재배포하지 않으면 웹 앱에는 반영되지 않는다.** 편집기의 코드와 배포된 코드는 별개다.
+
+1. 구글 시트 → 확장 프로그램 → Apps Script
+2. 기존 코드 전체 선택(Ctrl+A) 후 새 `Code.gs` 내용으로 교체
+3. **저장 (Ctrl+S).** 이걸 빼먹으면 다음 단계에서 예전 코드가 버전으로 굳는다.
+   상단 파일명 옆의 수정됨 표시가 사라져야 저장된 것.
+4. 우측 상단 **배포 → 배포 관리**
+5. 목록에서 **현재 쓰는 배포**를 고른다. 웹 앱 URL이 `apply.html`/`admin.html` 의
+   `CONFIG.API_URL` 과 같은 것이어야 한다(배포가 여러 개면 여기서 자주 틀린다).
+6. 우측 상단 **연필(✏️) 아이콘** 클릭
+7. **버전 드롭다운을 "새 버전"으로 변경** ← 기본값이 현재 버전이라 그냥 두면 아무것도 안 바뀐다.
+   이 단계가 재배포 실패의 대부분이다.
+8. **배포** 버튼 클릭
+9. 확인: 브라우저에서 `<웹앱URL>?action=adminData` 를 열어
+   `{"ok":true,"data":{"applications":[...],"blocked":[...]}}` 가 나오면 성공.
+   `{"ok":false,"error":"unknown_action"}` 이면 3·7단계를 다시 확인할 것.
 - CORS 처리: POST 요청은 `Content-Type: text/plain;charset=utf-8`로 보내 브라우저의 CORS preflight(OPTIONS)를 우회함 (Apps Script가 preflight를 제대로 지원하지 않기 때문). 서버 측에서는 `e.postData.contents`를 직접 JSON.parse해서 처리.
 
 ### 2.3 데이터 저장 (Google Sheets)
