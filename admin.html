@@ -153,7 +153,7 @@
 
 <div class="container">
   <div id="apiErrorBanner" class="banner error hidden">
-    지금은 서버에 연결할 수 없습니다. 잠시 후 새로고침 해 주세요.
+    지금은 서버에 연결할 수 없습니다. 화면의 내용은 마지막으로 받아온 것이라 실제와 다를 수 있습니다. 계속 이러면 Apps Script 일일 실행 한도를 넘었을 수 있습니다.
   </div>
 
   <div class="stats">
@@ -304,6 +304,7 @@ function loadAll(){
       allApplications = apps.sort((a,b)=> new Date(b.submittedAt) - new Date(a.submittedAt));
       blockedDates = new Set(blocked);
       showApiError(false);
+      pollDelay = POLL_BASE_MS; // 정상 복구되면 간격도 원래대로
 
       if(signature === lastDataSignature) return; // 바뀐 게 없으면 다시 그리지 않는다
       lastDataSignature = signature;
@@ -313,6 +314,8 @@ function loadAll(){
     }catch(err){
       console.warn('데이터 로드 실패', err);
       showApiError(true);
+      // 서버가 응답하지 않는데 20초마다 계속 두드리면 할당량만 더 깎는다
+      pollDelay = Math.min(pollDelay * 2, POLL_MAX_MS);
       renderBlockedList();
       renderStats();
       requestRender();
@@ -322,8 +325,47 @@ function loadAll(){
   })();
   return inFlightLoad;
 }
+/* 자동 새로고침.
+   그냥 setInterval 로 20초마다 호출하면, 탭을 열어둔 채 자리를 비운 동안에도
+   시간당 180번씩 Apps Script 를 실행시킨다. 무료 구글 계정의 일일 실행시간
+   한도(90분)는 이것만으로도 소진되고, 그러면 신청 접수까지 같이 멈춘다.
+   그래서 (1) 탭이 가려져 있으면 쉬고 (2) 한참 조작이 없으면 멈췄다가
+   돌아오면 다시 시작하며 (3) 실패가 이어지면 간격을 늘린다. */
+const POLL_BASE_MS = 20000;
+const POLL_MAX_MS = 5 * 60 * 1000;   // 연속 실패 시 최대 간격
+const IDLE_STOP_MS = 30 * 60 * 1000; // 이만큼 조작이 없으면 폴링 중단
+
+let pollTimer = null;
+let pollDelay = POLL_BASE_MS;
+let lastActivity = Date.now();
+
+function schedulePoll(){
+  clearTimeout(pollTimer);
+  pollTimer = setTimeout(async ()=>{
+    pollTimer = null;
+    // 보이지 않거나 손을 놓은 상태면 요청하지 않는다.
+    // 다시 조작하거나 탭으로 돌아오면 wakePolling 이 깨운다.
+    if(document.hidden || Date.now() - lastActivity > IDLE_STOP_MS) return;
+    await loadAll();
+    schedulePoll();
+  }, pollDelay);
+}
+
+function wakePolling(refreshNow){
+  lastActivity = Date.now();
+  if(refreshNow) loadAll();
+  if(!pollTimer) schedulePoll();
+}
+
+['click','keydown','scroll'].forEach(ev =>
+  window.addEventListener(ev, ()=> wakePolling(false), { passive: true }));
+document.addEventListener('visibilitychange', ()=>{
+  // 탭으로 돌아오면 다음 주기를 기다리지 않고 바로 한 번 받아온다.
+  if(!document.hidden) wakePolling(true);
+});
+
 loadAll();
-setInterval(loadAll, 20000); // 20초마다 자동 새로고침
+schedulePoll();
 
 /* 자동 새로고침이 입력 중인 값을 건드리지 않도록 렌더를 미룬다.
    표 안(예약번호 입력칸·상태 드롭다운)에 포커스가 있는 동안 tbody 를
@@ -353,8 +395,11 @@ document.getElementById('refreshBtn').addEventListener('click', async ()=>{
   const label = btn.textContent;
   btn.disabled = true;
   btn.textContent = '불러오는 중...';
+  pollDelay = POLL_BASE_MS;
+  lastActivity = Date.now();
   try{
     await loadAll();
+    if(!pollTimer) schedulePoll();
   }finally{
     btn.disabled = false;
     btn.textContent = label;
