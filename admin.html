@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>라한호텔 휴양시설 접수 관리</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Gothic+A1:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Gothic+A1:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg: #FFF8F3;
@@ -31,9 +32,9 @@
 
   header{ background: var(--panel); border-bottom: 1px solid var(--line); padding: 22px 24px; position: sticky; top: 0; z-index: 10; }
   header .inner{ max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  header h1{ font-family: 'Gowun Dodum', sans-serif; font-size: 20px; font-weight: 600; margin: 0; }
+  header h1{ font-family: 'Gowun Dodum', sans-serif; font-size: 20px; font-weight: 700; margin: 0; }
   header .eyebrow{ font-family: 'Gowun Dodum', sans-serif; font-size: 12px; color: var(--gold-deep); margin-bottom: 4px; }
-  .export-btn{ background: var(--gold-deep); color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 7px; }
+  .export-btn{ background: var(--gold-deep); color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-family: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 7px; }
   .export-btn:hover{ filter: brightness(0.92); }
   .export-btn:disabled{ background: var(--line); cursor: not-allowed; }
   .refresh-btn{ background: none; border: 1px solid var(--line); color: var(--ink-soft); padding: 9px 12px; border-radius: 7px; font-family: inherit; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
@@ -43,7 +44,7 @@
   .container{ max-width: 1100px; margin: 0 auto; padding: 28px 24px 80px; }
   .stats{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
   .stat-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
-  .stat-card .num{ font-family: 'Gowun Dodum', sans-serif; font-size: 26px; font-weight: 600; }
+  .stat-card .num{ font-family: 'Gowun Dodum', sans-serif; font-size: 26px; font-weight: 700; }
   .stat-card .label{ font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
   .stat-card.wait .num{ color: var(--amber); }
   .stat-card.ok .num{ color: var(--green); }
@@ -51,8 +52,8 @@
 
   .block-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 18px; }
   .block-card .block-head{ display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
-  .block-card .block-title{ font-family: 'Gowun Dodum', sans-serif; font-size: 15.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-  .block-card .block-title .badge{ font-family: 'Gothic A1', sans-serif; font-size: 11.5px; font-weight: 600; background: var(--red); color: #fff; padding: 2px 9px; border-radius: 999px; }
+  .block-card .block-title{ font-family: 'Gowun Dodum', sans-serif; font-size: 15.5px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .block-card .block-title .badge{ font-family: 'Gothic A1', sans-serif; font-size: 11.5px; font-weight: 700; background: var(--red); color: #fff; padding: 2px 9px; border-radius: 999px; }
   .block-toggle{ background: none; border: none; cursor: pointer; color: var(--ink-soft); font-size: 13px; display: flex; align-items: center; gap: 5px; }
   .block-body{ display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
   .block-body.open{ display: block; }
@@ -60,11 +61,11 @@
   .block-form .fg{ display: flex; flex-direction: column; gap: 6px; }
   .block-form label{ font-size: 12.5px; color: var(--ink-soft); }
   .block-form input{ font-family: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); }
-  .block-form button{ background: var(--red); color: #fff; border: none; padding: 10px 16px; border-radius: 7px; font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+  .block-form button{ background: var(--red); color: #fff; border: none; padding: 10px 16px; border-radius: 7px; font-family: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; }
   .block-form button:hover{ filter: brightness(0.92); }
   .block-form .helper{ font-size: 12px; color: var(--ink-soft); width: 100%; }
   .blocked-list{ display: flex; flex-wrap: wrap; gap: 8px; }
-  .blocked-chip{ display: flex; align-items: center; gap: 8px; background: var(--red); color: #fff; font-size: 12.5px; font-weight: 500; padding: 6px 8px 6px 12px; border-radius: 999px; }
+  .blocked-chip{ display: flex; align-items: center; gap: 8px; background: var(--red); color: #fff; font-size: 12.5px; font-weight: 400; padding: 6px 8px 6px 12px; border-radius: 999px; }
   .blocked-chip button{ background: none; border: none; color: #fff; cursor: pointer; font-size: 14px; line-height: 1; padding: 2px; display: flex; }
   .blocked-chip button:hover{ opacity: 0.7; }
   .blocked-empty{ font-size: 13px; color: var(--ink-soft); }
@@ -79,7 +80,7 @@
 
   .bulk-bar{ display: none; background: var(--ink); color: var(--bg); border-radius: 10px; padding: 12px 18px; margin-bottom: 14px; align-items: center; gap: 14px; font-size: 13.5px; }
   .bulk-bar.show{ display: flex; }
-  .bulk-bar .count{ font-weight: 600; }
+  .bulk-bar .count{ font-weight: 700; }
   .bulk-bar .spacer{ flex: 1; }
   .bulk-bar button{ font-family: inherit; font-size: 12.5px; padding: 7px 13px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.25); background: transparent; color: inherit; cursor: pointer; }
   .bulk-bar button:hover{ background: rgba(255,255,255,0.12); }
@@ -88,14 +89,14 @@
 
   table{ width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   thead tr{ background: var(--bg); }
-  th{ text-align: left; font-size: 12.5px; color: var(--ink-soft); font-weight: 600; padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th{ text-align: left; font-size: 12.5px; color: var(--ink-soft); font-weight: 700; padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
   td{ padding: 13px 14px; font-size: 13.5px; border-bottom: 1px solid var(--line); vertical-align: middle; }
   tbody tr:last-child td{ border-bottom: none; }
   tbody tr:hover{ background: var(--bg); }
   .memo-cell{ max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-soft); }
   .reservationInput{ width: 110px; font-family: inherit; font-size: 13px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
   .reservationInput:focus{ border-color: var(--gold); outline: none; }
-  .pill{ display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; font-family: inherit; }
+  .pill{ display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px; border-radius: 999px; font-size: 12px; font-weight: 700; border: none; cursor: pointer; font-family: inherit; }
   select.statusSelect{
     padding: 5px 26px 5px 12px; min-width: 72px; white-space: nowrap;
     -webkit-appearance: none; -moz-appearance: none; appearance: none;
@@ -108,7 +109,7 @@
   .weekday-tag{ font-size: 11.5px; color: var(--ink-soft); margin-left: 4px; }
 
   .empty-state{ text-align: center; padding: 70px 20px; color: var(--ink-soft); }
-  .empty-state h3{ font-family: 'Gowun Dodum', sans-serif; font-size: 17px; color: var(--ink); margin: 0 0 6px; font-weight: 600; }
+  .empty-state h3{ font-family: 'Gowun Dodum', sans-serif; font-size: 17px; color: var(--ink); margin: 0 0 6px; font-weight: 700; }
   .empty-state p{ font-size: 13.5px; margin: 0; }
 
   @media (max-width: 720px){
@@ -458,7 +459,7 @@ function renderAdminTable(){
     return `
     <tr data-id="${item.id}">
       <td data-label=""><input type="checkbox" class="rowCheck" data-id="${item.id}" ${checked}></td>
-      <td data-label="신청번호" style="font-weight:600; color: var(--gold-deep);">${escapeHtml(item.appNo || '-')}</td>
+      <td data-label="신청번호" style="font-weight: 700; color: var(--gold-deep);">${escapeHtml(item.appNo || '-')}</td>
       <td data-label="이름">${escapeHtml(item.name)}</td>
       <td data-label="사번">${escapeHtml(item.empid)}</td>
       <td data-label="지점">라한호텔 ${escapeHtml(item.branch)}</td>
