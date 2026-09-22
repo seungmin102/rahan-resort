@@ -34,6 +34,13 @@ Claude 아티팩트(claude.ai) 기반이 아니라, **외부에서 로그인 없
   - 배포 URL 예시: `https://script.google.com/macros/s/{DEPLOYMENT_ID}/exec`
   - **주의**: "새 배포"가 아니라 "배포 관리 → 기존 배포 편집"으로 재배포해야 URL이 유지됨.
 
+**재배포 누락 자동 감지**: 관리자 화면은 열릴 때 `action=version` 을 호출해, 화면이 필요로 하는 액션
+(`adminData`, `updateStatusBulk`, `deleteApplication`, `deleteApplicationsBulk`, `cancelApplication`)이
+배포본에 있는지 확인한다. 없으면 **어떤 기능이 안 되는지와 재배포 방법을 노란 배너로 띄운다.**
+Code.gs 를 고쳐도 재배포하지 않으면 화면은 멀쩡해 보이면서 특정 버튼만 `unknown_action` 으로 조용히
+실패하기 때문이다. **기능을 추가할 때는 `SCRIPT_VERSION` 과 `SUPPORTED_ACTIONS`, 그리고 admin.html 의
+`REQUIRED_ACTIONS` 를 함께 갱신해야 한다.**
+
 #### Code.gs 수정 후 재배포 절차 (매번 이대로)
 코드를 고쳐도 **재배포하지 않으면 웹 앱에는 반영되지 않는다.** 편집기의 코드와 배포된 코드는 별개다.
 
@@ -69,7 +76,7 @@ Apps Script가 최초 요청 시 아래 두 시트를 자동 생성함.
 | H | nights | 박수 (1박2일/2박3일) |
 | I | people | 인원 (항상 2 고정) |
 | J | memo | 요청사항 (선택 입력) |
-| K | status | 대기/승인/거절 |
+| K | status | 대기/승인/거절/취소 |
 | L | reservationNo | 예약번호 (관리자가 호텔 회신 후 입력) |
 | M | submittedAt | 제출 시각 (ISO 8601 문자열) |
 
@@ -88,6 +95,7 @@ Apps Script가 최초 요청 시 아래 두 시트를 자동 생성함.
 
 | action | 파라미터 | 설명 | 응답 데이터 |
 |---|---|---|---|
+| `version` | - | 배포된 스크립트의 버전과 지원 액션 목록. 관리자 화면이 이걸로 재배포 필요 여부를 판단한다 | `{ version, actions[] }` |
 | `adminData` | - | **관리자 화면이 쓰는 기본 조회.** 신청 목록 + 마감일을 한 번의 실행으로 함께 반환 | `{ applications: Application[], blocked: string[] }` |
 | `list` | - | 전체 신청 목록 조회 (하위 호환용) | `Application[]` |
 | `blocked` | - | 마감일 목록 조회 | `string[]` (YYYY-MM-DD 배열) |
@@ -103,6 +111,7 @@ body는 JSON 문자열, `{ "action": "...", ...payload }` 형태.
 | `updateStatus` | `{ id, status }` | 상태 변경 (대기/승인/거절) |
 | `updateReservation` | `{ id, reservationNo }` | 예약번호 기록 |
 | `updateStatusBulk` | `{ ids: string[], status }` | 여러 건 상태 일괄 변경. 시트를 한 번만 읽고 status 열을 한 번의 `setValues`로 기록. `{ updated, notFound[] }` 반환 (최대 200건) |
+| `cancelApplication` | `{ id, name, empid }` | **신청자 본인 취소.** 행을 지우지 않고 상태만 `취소` 로 바꾼다. `id` 만으로 남의 신청을 취소할 수 없도록 이름+사번이 그 행과 일치하는지 서버에서 확인하며, 불일치는 `not_found` 로 응답한다(존재 여부를 흘리지 않기 위해). 거절 건은 `cannot_cancel` |
 | `deleteApplication` | `{ id }` | 신청 1건 삭제 (시트에서 행 제거) |
 | `deleteApplicationsBulk` | `{ ids: string[] }` | 여러 건 삭제. 행 번호가 밀리지 않도록 **아래쪽 행부터** 지우고 연속 구간은 `deleteRows` 로 묶어 처리. `{ deleted, notFound[] }` 반환 (최대 200건) |
 | `blockDate` | `{ date }` | 마감일 추가 (형식·접수기간·일~목요일 여부를 서버에서도 검증) |
@@ -156,6 +165,9 @@ body는 JSON 문자열, `{ "action": "...", ...payload }` 형태.
 
 ### 5.1 직원용 화면 (`apply.html`)
 - 탭 전환: "신청하기" / "내 신청 조회"
+- **신청 취소**: 내 신청 조회 결과에서 대기·승인 건에 취소 버튼이 붙는다. 승인 건은 예약이 잡혀 있을 수 있어
+  확인 문구가 더 강하다. 취소해도 **행은 남고 상태만 `취소`** 가 되므로 담당자 화면에서 계속 보인다
+  (지워버리면 이미 예약을 잡은 담당자가 알 방법이 없다)
 - 신청 폼: 이름, 사번, 지점, 룸타입, 이용일(커스텀 캘린더 팝업), 박수, 요청사항(선택)
 - 제출 시 서버 통신 실패에 대비한 에러 배너 표시
 - 제출 완료 화면: 신청번호/신청자/지점/룸타입/이용일/인원/상태 요약 카드. 상태는 10초마다 폴링하여 실시간처럼 갱신(승인/거절 시 뱃지 색 자동 변경). 폴링은 **승인/거절이 확정되면 중단**되고, 탭이 가려진 동안에는 호출하지 않으며, 최대 30분 뒤 자동 종료된다(탭으로 돌아오면 즉시 1회 확인)

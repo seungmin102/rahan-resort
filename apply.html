@@ -99,6 +99,11 @@
   .pill.대기{ background: var(--amber); color: #fff; }
   .pill.승인{ background: var(--green); color: #fff; }
   .pill.거절{ background: var(--red); color: #fff; }
+  .pill.취소{ background: var(--ink-soft); color: #fff; }
+  .cancel-btn{ margin-top: 14px; width: 100%; font-family: inherit; font-size: 13px; padding: 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink-soft); cursor: pointer; }
+  .cancel-btn:hover{ border-color: var(--red); color: var(--red); }
+  .cancel-btn:disabled{ opacity: .55; cursor: default; }
+  .lc-note{ margin-top: 12px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.55; }
 
   #f-date{ position: relative; }
   .cal-popup{ display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; width: 300px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); padding: 16px; }
@@ -311,7 +316,10 @@ const ERROR_MESSAGES = {
   date_out_of_range: '접수 기간(2026년 10월 1일 ~ 12월 31일) 내의 날짜만 신청할 수 있습니다.',
   date_not_allowed_weekday: '일~목요일만 신청할 수 있습니다.',
   stay_not_available: '선택하신 이용일은 그 사이 마감되었습니다. 날짜를 다시 선택해 주세요.',
-  memo_too_long: '요청사항이 너무 깁니다. 500자 이내로 입력해 주세요.'
+  memo_too_long: '요청사항이 너무 깁니다. 500자 이내로 입력해 주세요.',
+  cannot_cancel: '거절된 신청은 취소할 수 없습니다.',
+  not_found: '신청 내역을 찾을 수 없습니다. 다시 조회해 주세요.',
+  unknown_action: '서버가 이 기능을 아직 지원하지 않습니다. 담당자에게 문의해 주세요.'
 };
 
 const HOLIDAYS_2026 = new Set([
@@ -365,10 +373,14 @@ function isSelectableDate(dateStr){
 function statusLabel(status){
   if(status === '승인') return '승인됨';
   if(status === '거절') return '거절됨';
+  if(status === '취소') return '취소됨';
   return '대기중';
 }
+function pillClassFor(status){
+  return ['승인','거절','취소'].indexOf(status) !== -1 ? status : '대기';
+}
 function applyStatusPillClass(el, status){
-  el.className = 'pill ' + (status === '승인' || status === '거절' ? status : '대기');
+  el.className = 'pill ' + pillClassFor(status);
   el.textContent = statusLabel(status);
 }
 
@@ -687,21 +699,27 @@ document.getElementById('lookupEmpid').addEventListener('input', (e)=>{
   e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 6);
 });
 
+let lookupItems = [];          // 마지막 조회 결과
+let lookupIdentity = null;     // 그때 쓴 이름+사번 (취소 시 본인 확인용)
+
 function renderLookupResults(items){
   const wrap = document.getElementById('lookupResults');
-  if(items.length === 0){
+  lookupItems = [...items].sort((a,b)=> new Date(b.submittedAt) - new Date(a.submittedAt));
+
+  if(lookupItems.length === 0){
     wrap.innerHTML = '<div class="lookup-empty">일치하는 신청 내역이 없습니다. 이름과 사번을 다시 확인해 주세요.</div>';
     return;
   }
-  const sorted = [...items].sort((a,b)=> new Date(b.submittedAt) - new Date(a.submittedAt));
-  wrap.innerHTML = sorted.map(item=>{
+  wrap.innerHTML = lookupItems.map(item=>{
     const d = new Date(item.date + 'T00:00:00');
     const wd = weekdayKo[d.getDay()];
+    // 대기·승인 건만 취소할 수 있다. 거절·취소 건은 취소할 게 없다.
+    const cancellable = item.status === '대기' || item.status === '승인';
     return `
     <div class="lookup-card">
       <div class="lc-top">
         <span class="lc-branch">라한호텔 ${escapeHtml(item.branch)}</span>
-        <span class="pill ${item.status === '승인' || item.status === '거절' ? item.status : '대기'}">${statusLabel(item.status)}</span>
+        <span class="pill ${pillClassFor(item.status)}">${statusLabel(item.status)}</span>
       </div>
       <dl>
         <dt>신청번호</dt><dd>${escapeHtml(item.appNo || '-')}</dd>
@@ -710,8 +728,40 @@ function renderLookupResults(items){
         <dt>박수</dt><dd>2명 · ${escapeHtml(item.nights)}</dd>
         ${item.reservationNo ? `<dt>예약번호</dt><dd>${escapeHtml(item.reservationNo)}</dd>` : ''}
       </dl>
+      ${cancellable
+        ? `<button type="button" class="cancel-btn" data-id="${item.id}">신청 취소하기</button>`
+        : (item.status === '취소' ? '<div class="lc-note">취소된 신청입니다.</div>' : '')}
     </div>`;
   }).join('');
+
+  wrap.querySelectorAll('.cancel-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> cancelMyApplication(btn));
+  });
+}
+
+async function cancelMyApplication(btn){
+  const id = btn.dataset.id;
+  const item = lookupItems.find(a => a.id === id);
+  if(!item || !lookupIdentity) return;
+
+  // 승인된 건은 담당자가 이미 예약실에 넘겼을 수 있어 경고를 더 강하게 한다.
+  const extra = item.status === '승인'
+    ? '\n\n이미 승인된 신청입니다. 예약이 잡혀 있을 수 있으니, 취소 후 담당자에게도 알려 주세요.'
+    : '';
+  if(!confirm(`신청번호 ${item.appNo || '-'} (${item.date} 이용) 신청을 취소할까요?${extra}\n\n취소하면 되돌릴 수 없고, 다시 신청하셔야 합니다.`)) return;
+
+  btn.disabled = true;
+  btn.textContent = '취소 중...';
+  try{
+    await apiPost('cancelApplication', { id, name: lookupIdentity.name, empid: lookupIdentity.empid });
+    item.status = '취소';
+    renderLookupResults(lookupItems);
+  }catch(err){
+    console.error(err);
+    btn.disabled = false;
+    btn.textContent = '신청 취소하기';
+    alert(ERROR_MESSAGES[err.message] || '취소 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+  }
 }
 
 document.getElementById('lookupForm').addEventListener('submit', async (e)=>{
@@ -731,6 +781,7 @@ document.getElementById('lookupForm').addEventListener('submit', async (e)=>{
 
   try{
     const items = await apiGet('lookup', { name, empid });
+    lookupIdentity = { name, empid };
     renderLookupResults(items || []);
   }catch(err){
     console.error(err);

@@ -29,6 +29,9 @@
   .hidden{ display: none !important; }
   .banner{ max-width: 1100px; margin: 0 auto 18px; padding: 14px 16px; border-radius: 10px; font-size: 13.5px; text-align: center; }
   .banner.error{ background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
+  .banner.warn{ background: #FFF4E5; color: #92400E; border: 1px solid #F59E0B; text-align: left; line-height: 1.6; }
+  .banner.warn b{ font-weight: 700; }
+  .banner.warn code{ background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
 
   header{ background: var(--panel); border-bottom: 1px solid var(--line); padding: 22px 24px; position: sticky; top: 0; z-index: 10; }
   header .inner{ max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -42,7 +45,7 @@
   .refresh-btn:disabled{ opacity: 0.5; cursor: not-allowed; }
 
   .container{ max-width: 1100px; margin: 0 auto; padding: 28px 24px 80px; }
-  .stats{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stats{ display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
   .stat-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
   .stat-card .num{ font-family: 'Gowun Dodum', sans-serif; font-size: 26px; font-weight: 700; }
   .stat-card .label{ font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
@@ -116,6 +119,7 @@
   .pill.대기{ background: var(--amber); color: #fff; }
   .pill.승인{ background: var(--green); color: #fff; }
   .pill.거절{ background: var(--red); color: #fff; }
+  .pill.취소{ background: var(--ink-soft); color: #fff; }
   .weekday-tag{ font-size: 11.5px; color: var(--ink-soft); margin-left: 4px; }
 
   .empty-state{ text-align: center; padding: 70px 20px; color: var(--ink-soft); }
@@ -152,6 +156,8 @@
 </header>
 
 <div class="container">
+  <div id="staleServerBanner" class="banner warn hidden"></div>
+
   <div id="apiErrorBanner" class="banner error hidden">
     지금은 서버에 연결할 수 없습니다. 화면의 내용은 마지막으로 받아온 것이라 실제와 다를 수 있습니다. 계속 이러면 Apps Script 일일 실행 한도를 넘었을 수 있습니다.
   </div>
@@ -161,6 +167,7 @@
     <div class="stat-card wait"><div class="num" id="statWait">0</div><div class="label">대기중</div></div>
     <div class="stat-card ok"><div class="num" id="statOk">0</div><div class="label">승인</div></div>
     <div class="stat-card no"><div class="num" id="statNo">0</div><div class="label">거절</div></div>
+    <div class="stat-card cancelled"><div class="num" id="statCancel">0</div><div class="label">취소</div></div>
   </div>
 
   <div class="block-card">
@@ -189,6 +196,7 @@
       <button data-status="대기">대기</button>
       <button data-status="승인">승인</button>
       <button data-status="거절">거절</button>
+      <button data-status="취소">취소</button>
     </div>
   </div>
 
@@ -283,6 +291,40 @@ let currentStatusFilter = 'all';
 function showApiError(show){
   document.getElementById('apiErrorBanner').classList.toggle('hidden', !show);
 }
+
+/* 배포된 Apps Script 가 이 화면이 필요로 하는 기능을 갖고 있는지 확인한다.
+   Code.gs 를 고쳐도 재배포하지 않으면 화면은 정상으로 보이는데 특정 버튼만
+   조용히 실패해서, 원인을 찾기까지 한참 걸린다. 그래서 먼저 확인하고 알려준다. */
+const REQUIRED_ACTIONS = {
+  adminData: '관리자 목록 불러오기',
+  updateStatusBulk: '일괄 승인/거절',
+  deleteApplication: '삭제',
+  deleteApplicationsBulk: '일괄 삭제',
+  cancelApplication: '신청자 본인 취소'
+};
+
+async function checkServerVersion(){
+  let missing;
+  try{
+    const info = await apiGet('version');
+    const have = (info && info.actions) || [];
+    missing = Object.keys(REQUIRED_ACTIONS).filter(a => have.indexOf(a) === -1);
+  }catch(err){
+    // version 자체가 없으면 확실히 오래된 배포다
+    missing = Object.keys(REQUIRED_ACTIONS);
+  }
+  if(missing.length === 0) return;
+
+  const banner = document.getElementById('staleServerBanner');
+  banner.innerHTML =
+    '<b>구글 시트의 스크립트가 최신이 아닙니다.</b> 아래 기능이 지금은 동작하지 않습니다 — ' +
+    missing.map(a => REQUIRED_ACTIONS[a]).join(', ') + '.<br>' +
+    'Apps Script 편집기에 최신 <code>Code.gs</code> 를 붙여넣고 저장한 뒤, ' +
+    '<b>배포 → 배포 관리 → 연필(✏️) → 버전: 새 버전 → 배포</b> 하세요. ' +
+    '(“새 배포”가 아니라 기존 배포 수정이어야 주소가 그대로 유지됩니다.)';
+  banner.classList.remove('hidden');
+}
+checkServerVersion();
 
 let inFlightLoad = null;
 let lastDataSignature = null;
@@ -491,6 +533,7 @@ function renderStats(){
   document.getElementById('statWait').textContent = allApplications.filter(d=>d.status==='대기').length;
   document.getElementById('statOk').textContent = allApplications.filter(d=>d.status==='승인').length;
   document.getElementById('statNo').textContent = allApplications.filter(d=>d.status==='거절').length;
+  document.getElementById('statCancel').textContent = allApplications.filter(d=>d.status==='취소').length;
 }
 
 function renderAdminTable(){
@@ -532,6 +575,7 @@ function renderAdminTable(){
           <option value="대기" ${item.status==='대기'?'selected':''}>대기</option>
           <option value="승인" ${item.status==='승인'?'selected':''}>승인</option>
           <option value="거절" ${item.status==='거절'?'selected':''}>거절</option>
+          <option value="취소" ${item.status==='취소'?'selected':''}>취소</option>
         </select>
       </td>
       <td data-label="예약번호">

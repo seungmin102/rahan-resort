@@ -50,7 +50,20 @@ const HOLIDAYS = {
 const BRANCHES = ['경주','전주','포항','목포','울산'];
 const ROOMTYPES = ['디럭스 더블','디럭스 트윈'];
 const NIGHTS_OPTIONS = ['1박2일','2박3일'];
-const STATUSES = ['대기','승인','거절'];
+const STATUSES = ['대기','승인','거절','취소'];
+
+/* 배포된 스크립트가 최신인지 화면이 스스로 확인할 수 있도록,
+   버전과 지원 액션 목록을 돌려주는 action=version 을 둔다.
+   Code.gs 를 고쳤는데 재배포를 안 하면 화면은 멀쩡해 보이면서
+   특정 기능만 unknown_action 으로 실패해 원인을 찾기 어렵다.
+   ※ 기능을 추가하면 SCRIPT_VERSION 날짜와 아래 목록도 같이 갱신할 것. */
+const SCRIPT_VERSION = '2026-09-22';
+const SUPPORTED_ACTIONS = [
+  'version','list','blocked','adminData','lookup','status',
+  'submit','updateStatus','updateStatusBulk','updateReservation',
+  'deleteApplication','deleteApplicationsBulk','cancelApplication',
+  'blockDate','unblockDate'
+];
 
 const MAX_NAME_LEN = 20;
 const MAX_MEMO_LEN = 500;
@@ -74,6 +87,9 @@ function doGet(e){
         applications: getAllApplications(),
         blocked: getAllBlockedDates()
       }});
+    }
+    if(action === 'version'){
+      return jsonResponse({ ok:true, data: { version: SCRIPT_VERSION, actions: SUPPORTED_ACTIONS } });
     }
     if(action === 'lookup'){
       const name = e.parameter.name || '';
@@ -115,6 +131,10 @@ function doPost(e){
       if(action === 'updateReservation'){
         updateApplicationField(body.id, 'reservationNo', normalizeReservationNo(body.reservationNo));
         return jsonResponse({ ok:true });
+      }
+      if(action === 'cancelApplication'){
+        const result = cancelApplication(body.id, body.name, body.empid);
+        return jsonResponse({ ok:true, data: result });
       }
       if(action === 'deleteApplication'){
         deleteApplication(body.id);
@@ -421,6 +441,31 @@ function updateStatusBulk(ids, status){
 
   const notFound = Object.keys(wanted).filter(id => !found[id]);
   return { updated: targetRows.length, notFound };
+}
+
+/* 신청자 본인이 신청을 취소한다.
+   행을 지우지 않고 상태만 '취소' 로 바꾼다. 담당자가 이미 예약실에
+   넘겼을 수 있으므로, 목록에서 사라지면 안 되고 취소됐다는 사실이 보여야 한다.
+   id 만으로 취소되면 남의 신청도 건드릴 수 있으니, 조회에 쓴 이름+사번이
+   그 신청 건과 실제로 일치하는지 서버에서 다시 확인한다. */
+function cancelApplication(id, name, empid){
+  const sheet = getSheet(APPS_SHEET_NAME);
+  const row = findRowById(sheet, id);
+  if(row === -1) throw new Error('not_found');
+
+  const values = sheet.getRange(row, 1, 1, APPS_HEADERS.length).getValues()[0];
+  const rowName  = String(values[APPS_HEADERS.indexOf('name')] || '').trim();
+  const rowEmpid = String(values[APPS_HEADERS.indexOf('empid')] || '').trim();
+  if(rowName !== String(name || '').trim() || rowEmpid !== String(empid || '').trim()){
+    throw new Error('not_found'); // 존재 여부를 흘리지 않도록 같은 오류로 응답
+  }
+
+  const status = String(values[APPS_HEADERS.indexOf('status')] || '').trim();
+  if(status === '취소') return { status: '취소' }; // 이미 취소된 건은 그대로 성공 처리
+  if(status === '거절') throw new Error('cannot_cancel');
+
+  sheet.getRange(row, APPS_HEADERS.indexOf('status') + 1).setValue('취소');
+  return { status: '취소' };
 }
 
 /* 신청 삭제. 시트에서 행을 실제로 지우므로 API 로는 되돌릴 수 없다.
