@@ -14,6 +14,8 @@
  * 6. "배포" 클릭 후 권한 승인 진행
  * 7. 나온 웹 앱 URL(.../exec 로 끝나는 주소)을 복사해서
  *    apply.html, admin.html 안의 CONFIG.API_URL 에 붙여넣습니다.
+ *    ※ 이미 배포된 URL을 유지하려면 "새 배포"가 아니라
+ *      "배포 관리 > 기존 배포 편집 > 버전: 새 버전"으로 재배포하세요.
  * 8. (속도 최적화, 선택이지만 추천) 시트가 한 번 자동 생성된 후, "Applications" 탭에서
  *    B열(신청번호), D열(사번), G열(이용일) 전체를 마우스로 선택 → 서식 > 숫자 > 일반 텍스트로
  *    지정해 두면, 매 제출마다 서식을 다시 고치는 과정이 없어져 더 빨라집니다.
@@ -27,6 +29,33 @@ const BLOCKED_SHEET_NAME = 'BlockedDates';
 
 const APPS_HEADERS = ['id','appNo','name','empid','branch','roomtype','date','nights','people','memo','status','reservationNo','submittedAt'];
 const BLOCKED_HEADERS = ['date','blockedAt'];
+
+/* =========================================================
+   신청 규칙 (서버 측 검증용)
+   ※ apply.html 의 동일 규칙과 값이 일치해야 합니다.
+     연도가 바뀌면 HOLIDAYS / RANGE_* 를 양쪽 모두 갱신하세요.
+   ========================================================= */
+const RANGE_START = '2026-10-01';
+const RANGE_END   = '2026-12-31';
+
+const HOLIDAYS = {
+  '2026-01-01':1,'2026-02-16':1,'2026-02-17':1,'2026-02-18':1,
+  '2026-03-01':1,'2026-03-02':1,'2026-05-01':1,'2026-05-05':1,
+  '2026-05-24':1,'2026-05-25':1,'2026-06-03':1,'2026-06-06':1,
+  '2026-07-17':1,'2026-08-15':1,'2026-08-17':1,
+  '2026-09-24':1,'2026-09-25':1,'2026-09-26':1,
+  '2026-10-03':1,'2026-10-05':1,'2026-10-09':1,'2026-12-25':1
+};
+
+const BRANCHES = ['경주','전주','포항','목포','울산'];
+const ROOMTYPES = ['디럭스 더블','디럭스 트윈'];
+const NIGHTS_OPTIONS = ['1박2일','2박3일'];
+const STATUSES = ['대기','승인','거절'];
+
+const MAX_NAME_LEN = 20;
+const MAX_MEMO_LEN = 500;
+const MAX_RESERVATION_LEN = 50;
+const MAX_BULK_IDS = 200;
 
 function doGet(e){
   try{
@@ -48,7 +77,7 @@ function doGet(e){
     }
     return jsonResponse({ ok:false, error: 'unknown_action' });
   }catch(err){
-    return jsonResponse({ ok:false, error: String(err) });
+    return jsonResponse({ ok:false, error: String(err && err.message || err) });
   }
 }
 
@@ -57,18 +86,25 @@ function doPost(e){
     const body = JSON.parse(e.postData.contents);
     const action = body.action;
     const lock = LockService.getScriptLock();
-    lock.waitLock(10000);
+    lock.waitLock(30000);
     try{
       if(action === 'submit'){
         const result = submitApplication(body.data);
         return jsonResponse({ ok:true, data: result });
       }
       if(action === 'updateStatus'){
-        updateApplicationField(body.id, 'status', body.status);
+        updateApplicationField(body.id, 'status', normalizeStatus(body.status));
         return jsonResponse({ ok:true });
       }
+      if(action === 'updateStatusBulk'){
+        // 여러 건을 한 요청에서 처리 (관리자 일괄 승인/거절).
+        // 건별로 POST를 날리면 요청마다 락을 잡고 시트를 다시 읽어야 해서
+        // 건수가 늘면 락 대기 시간을 넘겨 실패한다.
+        const result = updateStatusBulk(body.ids, body.status);
+        return jsonResponse({ ok:true, data: result });
+      }
       if(action === 'updateReservation'){
-        updateApplicationField(body.id, 'reservationNo', body.reservationNo);
+        updateApplicationField(body.id, 'reservationNo', normalizeReservationNo(body.reservationNo));
         return jsonResponse({ ok:true });
       }
       if(action === 'blockDate'){
@@ -84,7 +120,7 @@ function doPost(e){
       lock.releaseLock();
     }
   }catch(err){
-    return jsonResponse({ ok:false, error: String(err) });
+    return jsonResponse({ ok:false, error: String(err && err.message || err) });
   }
 }
 
@@ -145,14 +181,130 @@ function formatDateValue(val){
   return String(val);
 }
 
+/* =========================================================
+   검증 헬퍼
+   ========================================================= */
+
+// 'YYYY-MM-DD' 문자열을 로컬 Date 로 변환. 형식이 틀리거나 달력에 없는
+// 날짜(예: 2026-11-31)면 null 을 돌려준다.
+function parseDateStr(dateStr){
+  if(typeof dateStr !== 'string') return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if(!m) return null;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  const dt = new Date(y, mo - 1, d);
+  if(dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+  return dt;
+}
+
+function addDaysStr(dateStr, days){
+  const dt = parseDateStr(dateStr);
+  dt.setDate(dt.getDate() + days);
+  return Utilities.formatDate(dt, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+}
+
+function inAllowedRange(dateStr){
+  return dateStr >= RANGE_START && dateStr <= RANGE_END;
+}
+
+// 이용(체크인) 가능 요일: 일(0)~목(4)
+function isAllowedWeekday(dateStr){
+  const dt = parseDateStr(dateStr);
+  if(!dt) return false;
+  const day = dt.getDay();
+  return day >= 0 && day <= 4;
+}
+
+// 묵을 수 없는 밤: 금·토요일, 공휴일, 관리자 마감일
+function isNightBlocked(dateStr, blockedMap){
+  const dt = parseDateStr(dateStr);
+  if(!dt) return true;
+  const day = dt.getDay();
+  if(day === 5 || day === 6) return true;
+  if(HOLIDAYS[dateStr]) return true;
+  if(blockedMap[dateStr]) return true;
+  return false;
+}
+
+function occupiedNights(dateStr, nightsValue){
+  const count = nightsValue === '2박3일' ? 2 : 1;
+  const arr = [];
+  for(let i=0; i<count; i++){
+    arr.push(addDaysStr(dateStr, i));
+  }
+  return arr;
+}
+
+function blockedDateMap(){
+  const map = {};
+  getAllBlockedDates().forEach(d => { map[d] = 1; });
+  return map;
+}
+
+function normalizeStatus(status){
+  const s = String(status == null ? '' : status).trim();
+  if(STATUSES.indexOf(s) === -1) throw new Error('invalid_status');
+  return s;
+}
+
+function normalizeReservationNo(value){
+  const s = String(value == null ? '' : value).trim();
+  if(s.length > MAX_RESERVATION_LEN) throw new Error('reservation_too_long');
+  return s;
+}
+
+// 신청 데이터를 검증하고, 시트에 기록할 정규화된 값을 돌려준다.
+// 브라우저(apply.html)에서 이미 같은 규칙을 검사하지만, API 를 직접
+// 호출하면 그 검사를 통째로 건너뛸 수 있으므로 여기서 다시 확인한다.
+function validateSubmission(data){
+  if(!data || typeof data !== 'object') throw new Error('invalid_payload');
+
+  const name = String(data.name == null ? '' : data.name).trim();
+  if(!name) throw new Error('missing_name');
+  if(name.length > MAX_NAME_LEN) throw new Error('name_too_long');
+
+  const empid = String(data.empid == null ? '' : data.empid).trim();
+  if(!/^\d{1,6}$/.test(empid)) throw new Error('invalid_empid');
+
+  const branch = String(data.branch == null ? '' : data.branch).trim();
+  if(BRANCHES.indexOf(branch) === -1) throw new Error('invalid_branch');
+
+  const roomtype = String(data.roomtype == null ? '' : data.roomtype).trim();
+  if(ROOMTYPES.indexOf(roomtype) === -1) throw new Error('invalid_roomtype');
+
+  const nights = String(data.nights == null ? '' : data.nights).trim();
+  if(NIGHTS_OPTIONS.indexOf(nights) === -1) throw new Error('invalid_nights');
+
+  const date = String(data.date == null ? '' : data.date).trim();
+  if(!parseDateStr(date)) throw new Error('invalid_date');
+  if(!inAllowedRange(date)) throw new Error('date_out_of_range');
+  if(!isAllowedWeekday(date)) throw new Error('date_not_allowed_weekday');
+
+  const blockedMap = blockedDateMap();
+  const nightsList = occupiedNights(date, nights);
+  for(let i=0; i<nightsList.length; i++){
+    if(isNightBlocked(nightsList[i], blockedMap)) throw new Error('stay_not_available');
+  }
+
+  const memo = String(data.memo == null ? '' : data.memo).trim();
+  if(memo.length > MAX_MEMO_LEN) throw new Error('memo_too_long');
+
+  return { name, empid, branch, roomtype, date, nights, memo };
+}
+
+/* =========================================================
+   쓰기 동작
+   ========================================================= */
+
 function submitApplication(data){
+  const clean = validateSubmission(data);
   const sheet = getSheet(APPS_SHEET_NAME);
   const id = Utilities.getUuid();
   const appNo = generateAppNo(sheet);
   const row = [
     id, appNo,
-    data.name || '', data.empid || '', data.branch || '', data.roomtype || '',
-    data.date || '', data.nights || '', 2, data.memo || '',
+    clean.name, clean.empid, clean.branch, clean.roomtype,
+    clean.date, clean.nights, 2, clean.memo,
     '대기', '', new Date().toISOString()
   ];
   // appendRow 대신 위치를 직접 계산해 한 번의 호출로 기록 (속도 최적화)
@@ -187,6 +339,41 @@ function updateApplicationField(id, field, value){
   throw new Error('not_found');
 }
 
+// 여러 건의 상태를 한 번에 변경한다. 시트는 한 번만 읽고, status 열 전체를
+// 한 번의 setValues 로 다시 쓴다(값은 방금 읽은 것 그대로라 대상 외 행은 불변).
+function updateStatusBulk(ids, status){
+  const clean = normalizeStatus(status);
+  if(!Array.isArray(ids)) throw new Error('invalid_ids');
+  if(ids.length === 0) return { updated: 0, notFound: [] };
+  if(ids.length > MAX_BULK_IDS) throw new Error('too_many_ids');
+
+  const wanted = {};
+  ids.forEach(id => { wanted[String(id)] = true; });
+
+  const sheet = getSheet(APPS_SHEET_NAME);
+  const range = sheet.getDataRange().getValues();
+  const colIndex = APPS_HEADERS.indexOf('status');
+  if(range.length < 2) return { updated: 0, notFound: ids.map(String) };
+
+  const column = [];
+  const found = {};
+  let updated = 0;
+  for(let r=1; r<range.length; r++){
+    const rowId = String(range[r][0]);
+    if(wanted[rowId]){
+      column.push([clean]);
+      found[rowId] = true;
+      updated++;
+    } else {
+      column.push([range[r][colIndex]]);
+    }
+  }
+  sheet.getRange(2, colIndex+1, column.length, 1).setValues(column);
+
+  const notFound = Object.keys(wanted).filter(id => !found[id]);
+  return { updated, notFound };
+}
+
 function lookupApplications(name, empid){
   const all = getAllApplications();
   return all.filter(a => String(a.name) === name && String(a.empid) === empid);
@@ -198,20 +385,26 @@ function getApplicationById(id){
 }
 
 function blockDate(dateStr){
+  const date = String(dateStr == null ? '' : dateStr).trim();
+  if(!parseDateStr(date)) throw new Error('invalid_date');
+  if(!inAllowedRange(date)) throw new Error('date_out_of_range');
+  if(!isAllowedWeekday(date)) throw new Error('date_not_allowed_weekday');
+
   const sheet = getSheet(BLOCKED_SHEET_NAME);
   const range = sheet.getDataRange().getValues();
   for(let r=1; r<range.length; r++){
-    if(formatDateValue(range[r][0]) === dateStr) return; // 이미 존재
+    if(formatDateValue(range[r][0]) === date) return; // 이미 존재
   }
   const lastRow = sheet.getLastRow();
-  sheet.getRange(lastRow + 1, 1, 1, 2).setValues([[dateStr, new Date().toISOString()]]);
+  sheet.getRange(lastRow + 1, 1, 1, 2).setValues([[date, new Date().toISOString()]]);
 }
 
 function unblockDate(dateStr){
+  const date = String(dateStr == null ? '' : dateStr).trim();
   const sheet = getSheet(BLOCKED_SHEET_NAME);
   const range = sheet.getDataRange().getValues();
   for(let r=1; r<range.length; r++){
-    if(formatDateValue(range[r][0]) === dateStr){
+    if(formatDateValue(range[r][0]) === date){
       sheet.deleteRow(r+1);
       return;
     }

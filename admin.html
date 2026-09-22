@@ -270,10 +270,34 @@ async function loadAll(){
     showApiError(true);
   }
   renderBlockedList();
-  renderAdminTable();
+  renderStats();
+  requestRender();
 }
 loadAll();
 setInterval(loadAll, 20000); // 20초마다 자동 새로고침
+
+/* 자동 새로고침이 입력 중인 값을 건드리지 않도록 렌더를 미룬다.
+   표 안(예약번호 입력칸·상태 드롭다운)에 포커스가 있는 동안 tbody 를
+   통째로 다시 그리면, 입력칸이 DOM 에서 제거되면서
+     - 타이핑하다 만 값이 그대로 저장되고(예: 'HTL-12' 까지만 친 상태),
+     - 포커스가 풀려 이어서 치던 글자가 어디에도 들어가지 않으며,
+     - 다음 새로고침(최대 20초) 전까지 칸이 빈 것처럼 보인다.
+   그래서 편집 중에는 렌더를 보류했다가 포커스가 빠질 때 반영한다. */
+let pendingRender = false;
+
+function isEditingTable(){
+  const el = document.activeElement;
+  return !!(el && el.closest && el.closest('#dataTable'));
+}
+function requestRender(){
+  if(isEditingTable()){ pendingRender = true; return; }
+  pendingRender = false;
+  renderAdminTable();
+}
+document.getElementById('dataTable').addEventListener('focusout', ()=>{
+  // 포커스가 표 안의 다른 칸으로 옮겨가는 경우도 있어 한 틱 뒤에 확인한다.
+  setTimeout(()=>{ if(pendingRender && !isEditingTable()) requestRender(); }, 0);
+});
 
 document.getElementById('refreshBtn').addEventListener('click', async ()=>{
   const btn = document.getElementById('refreshBtn');
@@ -343,16 +367,20 @@ function getFilteredApplications(){
   });
 }
 
+function renderStats(){
+  document.getElementById('statTotal').textContent = allApplications.length;
+  document.getElementById('statWait').textContent = allApplications.filter(d=>d.status==='대기').length;
+  document.getElementById('statOk').textContent = allApplications.filter(d=>d.status==='승인').length;
+  document.getElementById('statNo').textContent = allApplications.filter(d=>d.status==='거절').length;
+}
+
 function renderAdminTable(){
   const filtered = getFilteredApplications();
   const table = document.getElementById('dataTable');
   const empty = document.getElementById('emptyState');
   const tbody = document.getElementById('tableBody');
 
-  document.getElementById('statTotal').textContent = allApplications.length;
-  document.getElementById('statWait').textContent = allApplications.filter(d=>d.status==='대기').length;
-  document.getElementById('statOk').textContent = allApplications.filter(d=>d.status==='승인').length;
-  document.getElementById('statNo').textContent = allApplications.filter(d=>d.status==='거절').length;
+  renderStats();
 
   if(filtered.length === 0){
     table.style.display = 'none';
@@ -394,11 +422,22 @@ function renderAdminTable(){
   }).join('');
 
   document.querySelectorAll('.reservationInput').forEach(input=>{
-    input.addEventListener('blur', async ()=>{
+    // blur 가 아니라 change: 값이 실제로 바뀐 경우에만 저장하고,
+    // 단순히 칸을 지나친 경우에는 불필요한 쓰기를 하지 않는다.
+    input.addEventListener('change', async ()=>{
       const id = input.dataset.id;
+      const value = input.value.trim();
+      const item = allApplications.find(a=>a.id===id);
+      const before = item ? (item.reservationNo || '') : '';
+      if(item) item.reservationNo = value; // 지연 렌더가 옛 값으로 덮어쓰지 않도록 먼저 반영
       try{
-        await apiPost('updateReservation', { id, reservationNo: input.value.trim() });
-      }catch(err){ console.error(err); }
+        await apiPost('updateReservation', { id, reservationNo: value });
+      }catch(err){
+        console.error(err);
+        if(item) item.reservationNo = before;
+        input.value = before;
+        alert('예약번호 저장에 실패했습니다. 다시 입력해 주세요.');
+      }
     });
     input.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') input.blur(); });
   });
@@ -414,11 +453,21 @@ function renderAdminTable(){
     sel.addEventListener('change', async (e)=>{
       const id = e.target.dataset.id;
       const newStatus = e.target.value;
+      const item = allApplications.find(a=>a.id===id);
+      const before = item ? item.status : '';
+      if(item) item.status = newStatus;
+      e.target.className = 'statusSelect pill ' + newStatus;
+      renderStats();
       try{
         await apiPost('updateStatus', { id, status: newStatus });
-        const item = allApplications.find(a=>a.id===id);
-        if(item) item.status = newStatus;
-      }catch(err){ console.error(err); alert('상태 변경 중 오류가 발생했습니다.'); }
+      }catch(err){
+        console.error(err);
+        if(item) item.status = before;
+        e.target.value = before;
+        e.target.className = 'statusSelect pill ' + before;
+        renderStats();
+        alert('상태 변경 중 오류가 발생했습니다.');
+      }
     });
   });
   updateBulkBar();
@@ -450,24 +499,41 @@ document.getElementById('selectAll').addEventListener('change', (e)=>{
   else filtered.forEach(f=>selectedIds.delete(f.id));
   renderAdminTable();
 });
-document.getElementById('bulkApprove').addEventListener('click', async ()=>{
+/* 일괄 처리는 요청 하나로 보낸다. 건별 POST 를 동시에 날리면 서버가
+   요청마다 스크립트 락을 잡고 시트를 다시 읽기 때문에, 건수가 늘면
+   뒤쪽 요청이 락 대기 시간을 넘겨 실패한다. */
+async function bulkUpdateStatus(status){
   const targets = [...selectedIds];
+  if(targets.length === 0) return;
+
+  const approveBtn = document.getElementById('bulkApprove');
+  const rejectBtn = document.getElementById('bulkReject');
+  approveBtn.disabled = true;
+  rejectBtn.disabled = true;
   try{
-    await Promise.all(targets.map(id => apiPost('updateStatus', { id, status: '승인' })));
-    targets.forEach(id=>{ const item = allApplications.find(a=>a.id===id); if(item) item.status = '승인'; });
-  }catch(err){ console.error(err); alert('일괄 승인 중 일부 오류가 발생했습니다.'); }
-  selectedIds.clear();
-  renderAdminTable();
-});
-document.getElementById('bulkReject').addEventListener('click', async ()=>{
-  const targets = [...selectedIds];
-  try{
-    await Promise.all(targets.map(id => apiPost('updateStatus', { id, status: '거절' })));
-    targets.forEach(id=>{ const item = allApplications.find(a=>a.id===id); if(item) item.status = '거절'; });
-  }catch(err){ console.error(err); alert('일괄 거절 중 일부 오류가 발생했습니다.'); }
-  selectedIds.clear();
-  renderAdminTable();
-});
+    const result = await apiPost('updateStatusBulk', { ids: targets, status });
+    const missing = new Set((result && result.notFound) || []);
+    targets.forEach(id=>{
+      if(missing.has(id)) return;
+      const item = allApplications.find(a=>a.id===id);
+      if(item) item.status = status;
+    });
+    selectedIds.clear();
+    if(missing.size > 0){
+      alert(`${targets.length - missing.size}건 처리했습니다. ${missing.size}건은 목록에서 찾을 수 없어 건너뛰었습니다(새로고침 후 확인해 주세요).`);
+    }
+  }catch(err){
+    console.error(err);
+    // 선택은 유지해서 그대로 다시 시도할 수 있게 한다.
+    alert(`일괄 ${status} 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.`);
+  }finally{
+    approveBtn.disabled = false;
+    rejectBtn.disabled = false;
+    renderAdminTable();
+  }
+}
+document.getElementById('bulkApprove').addEventListener('click', ()=> bulkUpdateStatus('승인'));
+document.getElementById('bulkReject').addEventListener('click', ()=> bulkUpdateStatus('거절'));
 document.getElementById('bulkClear').addEventListener('click', ()=>{
   selectedIds.clear();
   renderAdminTable();
