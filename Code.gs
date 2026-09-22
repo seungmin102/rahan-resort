@@ -151,10 +151,35 @@ function getSheet(name){
   return sheet;
 }
 
+/* 시트 읽기는 필요한 범위만.
+   getDataRange() 는 "내용이 있는 마지막 행/열"까지를 통째로 가져온다.
+   헤더 밖 열에 뭔가 적혀 있거나 열 전체에 서식이 걸려 있으면 그만큼
+   더 읽게 되고, 한 열만 필요할 때도 13개 열을 전부 실어 온다. */
+function readRows(sheet, numCols){
+  const lastRow = sheet.getLastRow();
+  if(lastRow < 2) return [];
+  return sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
+}
+
+// 한 열만 읽는다 (colIndex 는 1부터).
+function readColumn(sheet, colIndex){
+  const lastRow = sheet.getLastRow();
+  if(lastRow < 2) return [];
+  return sheet.getRange(2, colIndex, lastRow - 1, 1).getValues();
+}
+
+// id 로 행 번호를 찾는다. A열만 읽으면 되므로 전체를 가져오지 않는다.
+function findRowById(sheet, id){
+  const target = String(id);
+  const ids = readColumn(sheet, 1);
+  for(let i=0; i<ids.length; i++){
+    if(String(ids[i][0]) === target) return i + 2; // 헤더 1줄 + 0-based 보정
+  }
+  return -1;
+}
+
 function sheetToObjects(sheet, headers){
-  const range = sheet.getDataRange().getValues();
-  if(range.length < 2) return [];
-  return range.slice(1).map(row=>{
+  return readRows(sheet, headers.length).map(row=>{
     const obj = {};
     headers.forEach((h, i)=>{ obj[h] = row[i]; });
     return obj;
@@ -325,8 +350,8 @@ function submitApplication(data){
 }
 
 function generateAppNo(sheet){
-  const range = sheet.getDataRange().getValues();
-  const existing = new Set(range.slice(1).map(r => String(r[1])));
+  // 신청번호(B열)만 있으면 된다. 예전에는 이 한 열 때문에 시트 전체를 읽었다.
+  const existing = new Set(readColumn(sheet, 2).map(r => String(r[0])));
   for(let i=0; i<50; i++){
     const candidate = String(Math.floor(Math.random()*9000) + 1000);
     if(!existing.has(candidate)) return candidate;
@@ -336,16 +361,12 @@ function generateAppNo(sheet){
 
 function updateApplicationField(id, field, value){
   const sheet = getSheet(APPS_SHEET_NAME);
-  const range = sheet.getDataRange().getValues();
   const colIndex = APPS_HEADERS.indexOf(field);
   if(colIndex === -1) throw new Error('invalid_field');
-  for(let r=1; r<range.length; r++){
-    if(range[r][0] === id){
-      sheet.getRange(r+1, colIndex+1).setValue(value);
-      return true;
-    }
-  }
-  throw new Error('not_found');
+  const row = findRowById(sheet, id);
+  if(row === -1) throw new Error('not_found');
+  sheet.getRange(row, colIndex+1).setValue(value);
+  return true;
 }
 
 // 여러 건의 상태를 한 번에 변경한다. 시트는 한 번만 읽고, status 열 전체를
@@ -360,27 +381,38 @@ function updateStatusBulk(ids, status){
   ids.forEach(id => { wanted[String(id)] = true; });
 
   const sheet = getSheet(APPS_SHEET_NAME);
-  const range = sheet.getDataRange().getValues();
-  const colIndex = APPS_HEADERS.indexOf('status');
-  if(range.length < 2) return { updated: 0, notFound: ids.map(String) };
+  const statusCol = APPS_HEADERS.indexOf('status') + 1;
+  const idRows = readColumn(sheet, 1); // id(A열)만 읽어 대상 행을 찾는다
+  if(idRows.length === 0) return { updated: 0, notFound: ids.map(String) };
 
-  const column = [];
   const found = {};
-  let updated = 0;
-  for(let r=1; r<range.length; r++){
-    const rowId = String(range[r][0]);
+  const targetRows = [];
+  for(let i=0; i<idRows.length; i++){
+    const rowId = String(idRows[i][0]);
     if(wanted[rowId]){
-      column.push([clean]);
+      targetRows.push(i + 2);
       found[rowId] = true;
-      updated++;
-    } else {
-      column.push([range[r][colIndex]]);
     }
   }
-  sheet.getRange(2, colIndex+1, column.length, 1).setValues(column);
+
+  if(targetRows.length > 0){
+    // 대상 행들을 모두 감싸는 최소 구간만 읽고 쓴다.
+    // 건별 setValue 는 호출이 건수만큼 늘고, 열 전체 쓰기는 무관한 행까지 건드린다.
+    const minRow = targetRows[0];
+    const maxRow = targetRows[targetRows.length - 1];
+    const span = maxRow - minRow + 1;
+    const isTarget = {};
+    targetRows.forEach(r => { isTarget[r] = true; });
+
+    const values = sheet.getRange(minRow, statusCol, span, 1).getValues();
+    for(let r=minRow; r<=maxRow; r++){
+      if(isTarget[r]) values[r - minRow][0] = clean;
+    }
+    sheet.getRange(minRow, statusCol, span, 1).setValues(values);
+  }
 
   const notFound = Object.keys(wanted).filter(id => !found[id]);
-  return { updated, notFound };
+  return { updated: targetRows.length, notFound };
 }
 
 function lookupApplications(name, empid){
@@ -400,9 +432,9 @@ function blockDate(dateStr){
   if(!isAllowedWeekday(date)) throw new Error('date_not_allowed_weekday');
 
   const sheet = getSheet(BLOCKED_SHEET_NAME);
-  const range = sheet.getDataRange().getValues();
-  for(let r=1; r<range.length; r++){
-    if(formatDateValue(range[r][0]) === date) return; // 이미 존재
+  const existing = readColumn(sheet, 1);
+  for(let r=0; r<existing.length; r++){
+    if(formatDateValue(existing[r][0]) === date) return; // 이미 존재
   }
   const lastRow = sheet.getLastRow();
   sheet.getRange(lastRow + 1, 1, 1, 2).setValues([[date, new Date().toISOString()]]);
@@ -411,10 +443,10 @@ function blockDate(dateStr){
 function unblockDate(dateStr){
   const date = String(dateStr == null ? '' : dateStr).trim();
   const sheet = getSheet(BLOCKED_SHEET_NAME);
-  const range = sheet.getDataRange().getValues();
-  for(let r=1; r<range.length; r++){
-    if(formatDateValue(range[r][0]) === date){
-      sheet.deleteRow(r+1);
+  const existing = readColumn(sheet, 1);
+  for(let r=0; r<existing.length; r++){
+    if(formatDateValue(existing[r][0]) === date){
+      sheet.deleteRow(r + 2);
       return;
     }
   }

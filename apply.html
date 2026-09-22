@@ -125,6 +125,10 @@
     form{ padding: 26px 20px; }
     .topband h1{ font-size: 25px; }
   }
+  .check.pending{ background: var(--gold); }
+  .spinner{ display:inline-block; width:20px; height:20px; border:2.5px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation: spin .7s linear infinite; }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce){ .spinner{ animation-duration: 2s; } }
 </style>
 </head>
 <body>
@@ -227,11 +231,12 @@
 </div>
 
 <div class="wrap result" id="resultView" style="display:none;">
-  <div class="check">
+  <div class="check" id="resultCheck">
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 12.5L10 17L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </div>
-  <h2>신청이 접수되었습니다</h2>
-  <p>담당자 확인 후 예약실로 전달됩니다. 확정 여부는 별도 연락드립니다.</p>
+  <div class="check pending" id="resultSpinner" style="display:none;"><span class="spinner"></span></div>
+  <h2 id="resultTitle">신청이 접수되었습니다</h2>
+  <p id="resultDesc">담당자 확인 후 예약실로 전달됩니다. 확정 여부는 별도 연락드립니다.</p>
   <dl class="result-card" id="resultCard"></dl>
   <button class="again-btn" id="againBtn">새 신청 작성하기</button>
 </div>
@@ -527,6 +532,20 @@ let statusPollTimer = null;
 let statusPollId = null;
 let statusPollStartedAt = 0;
 
+// 접수 확인 전/후로 완료 화면의 문구와 아이콘을 전환한다.
+function setResultPending(pending){
+  document.getElementById('resultCheck').style.display = pending ? 'none' : '';
+  document.getElementById('resultSpinner').style.display = pending ? '' : 'none';
+  document.getElementById('againBtn').style.display = pending ? 'none' : '';
+  document.getElementById('resultTitle').textContent =
+    pending ? '신청서를 접수하고 있습니다' : '신청이 접수되었습니다';
+  document.getElementById('resultDesc').textContent =
+    pending ? '잠시만 기다려 주세요. 창을 닫지 마세요.'
+            : '담당자 확인 후 예약실로 전달됩니다. 확정 여부는 별도 연락드립니다.';
+  const pill = document.getElementById('resultStatusPill');
+  if(pill && !pending) applyStatusPillClass(pill, '대기');
+}
+
 function stopStatusPolling(){
   if(statusPollTimer){ clearInterval(statusPollTimer); statusPollTimer = null; }
   statusPollId = null;
@@ -584,26 +603,35 @@ document.getElementById('applyForm').addEventListener('submit', async (e)=>{
   submitBtn.disabled = true;
   submitBtn.textContent = '제출 중...';
 
+  /* 서버 왕복이 1~3초라 폼에 머물러 있으면 멈춘 것처럼 보인다.
+     화면은 바로 넘기되, 서버가 확인해 주기 전에는 "접수되었습니다"라고
+     말하지 않는다. 실패하면 폼으로 되돌린다. */
+  const wd = weekdayKo[new Date(date+'T00:00:00').getDay()];
+  document.getElementById('resultCard').innerHTML = `
+    <dt>신청번호</dt><dd><strong id="resultAppNo">발급 중...</strong></dd>
+    <dt>신청자</dt><dd>${escapeHtml(name)} (사번 ${escapeHtml(empid)})</dd>
+    <dt>지점</dt><dd>라한호텔 ${escapeHtml(branch)}</dd>
+    <dt>룸 타입</dt><dd>${escapeHtml(roomtype)}</dd>
+    <dt>이용일</dt><dd>${date} (${wd}요일)</dd>
+    <dt>인원</dt><dd>2명 · ${nights}</dd>
+    <dt>상태</dt><dd><span class="pill 대기" id="resultStatusPill">접수 중</span></dd>
+  `;
+  setResultPending(true);
+  document.getElementById('formView').style.display = 'none';
+  document.getElementById('resultView').style.display = 'block';
+  window.scrollTo(0,0);
+
   try{
     const result = await apiPost('submit', { data: { name, empid, branch, roomtype, date, nights, memo } });
 
-    document.getElementById('formView').style.display = 'none';
-    const rc = document.getElementById('resultCard');
-    const wd = weekdayKo[new Date(date+'T00:00:00').getDay()];
-    rc.innerHTML = `
-      <dt>신청번호</dt><dd><strong>${escapeHtml(result.appNo)}</strong></dd>
-      <dt>신청자</dt><dd>${escapeHtml(name)} (사번 ${escapeHtml(empid)})</dd>
-      <dt>지점</dt><dd>라한호텔 ${escapeHtml(branch)}</dd>
-      <dt>룸 타입</dt><dd>${escapeHtml(roomtype)}</dd>
-      <dt>이용일</dt><dd>${date} (${wd}요일)</dd>
-      <dt>인원</dt><dd>2명 · ${nights}</dd>
-      <dt>상태</dt><dd><span class="pill 대기" id="resultStatusPill">대기중</span></dd>
-    `;
-    document.getElementById('resultView').style.display = 'block';
-    window.scrollTo(0,0);
-
+    document.getElementById('resultAppNo').textContent = result.appNo;
+    setResultPending(false);
     startStatusPolling(result.id);
   }catch(err){
+    // 접수되지 않았으므로 완료 화면을 걷어내고 폼으로 되돌린다
+    document.getElementById('resultView').style.display = 'none';
+    document.getElementById('formView').style.display = 'block';
+    window.scrollTo(0,0);
     console.error(err);
     const known = ERROR_MESSAGES[err.message];
     alert(known || '신청 접수 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');

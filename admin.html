@@ -566,30 +566,38 @@ async function bulkUpdateStatus(status){
   const targets = [...selectedIds];
   if(targets.length === 0) return;
 
-  const approveBtn = document.getElementById('bulkApprove');
-  const rejectBtn = document.getElementById('bulkReject');
-  approveBtn.disabled = true;
-  rejectBtn.disabled = true;
+  /* 화면을 먼저 바꾸고 요청은 뒤에서 보낸다.
+     Apps Script 왕복이 1~3초라, 응답을 기다렸다가 표를 갱신하면 그 시간 동안
+     아무 반응이 없는 것처럼 보인다. 실패하면 원래 상태로 되돌린다. */
+  const previous = new Map();
+  targets.forEach(id=>{
+    const item = allApplications.find(a=>a.id===id);
+    if(item){ previous.set(id, item.status); item.status = status; }
+  });
+  selectedIds.clear();
+  lastDataSignature = null;
+  renderAdminTable();
+
   try{
     const result = await apiPost('updateStatusBulk', { ids: targets, status });
-    const missing = new Set((result && result.notFound) || []);
-    targets.forEach(id=>{
-      if(missing.has(id)) return;
-      const item = allApplications.find(a=>a.id===id);
-      if(item) item.status = status;
-    });
-    selectedIds.clear();
-    if(missing.size > 0){
-      alert(`${targets.length - missing.size}건 처리했습니다. ${missing.size}건은 목록에서 찾을 수 없어 건너뛰었습니다(새로고침 후 확인해 주세요).`);
+    const missing = (result && result.notFound) || [];
+    if(missing.length > 0){
+      missing.forEach(id=>{
+        const item = allApplications.find(a=>a.id===id);
+        if(item && previous.has(id)) item.status = previous.get(id);
+      });
+      renderAdminTable();
+      alert(`${targets.length - missing.length}건 처리했습니다. ${missing.length}건은 목록에 없어 되돌렸습니다. 새로고침 후 확인해 주세요.`);
     }
   }catch(err){
     console.error(err);
-    // 선택은 유지해서 그대로 다시 시도할 수 있게 한다.
-    alert(`일괄 ${status} 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.`);
-  }finally{
-    approveBtn.disabled = false;
-    rejectBtn.disabled = false;
+    previous.forEach((prevStatus, id)=>{
+      const item = allApplications.find(a=>a.id===id);
+      if(item) item.status = prevStatus;
+    });
+    targets.forEach(id => selectedIds.add(id)); // 그대로 다시 시도할 수 있게 선택 복원
     renderAdminTable();
+    alert(`일괄 ${status} 처리에 실패했습니다. 선택은 그대로 두었으니 다시 시도해 주세요.`);
   }
 }
 document.getElementById('bulkApprove').addEventListener('click', ()=> bulkUpdateStatus('승인'));
