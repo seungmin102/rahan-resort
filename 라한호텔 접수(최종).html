@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>라한호텔 휴양시설 신청</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Gothic+A1:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #FFF8F3;
+    --panel: #FFFFFF;
+    --ink: #262421;
+    --ink-soft: #78716C;
+    --line: #F0E4DA;
+    --gold: #F2631A;
+    --gold-deep: #D94E0C;
+    --green: #16A34A;
+    --green-bg: #DCFCE7;
+    --amber: #CA8A04;
+    --amber-bg: #FEF3C7;
+    --red: #DC2626;
+    --red-bg: #FEE2E2;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Gothic A1', sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .hidden{ display: none !important; }
+  .banner{ max-width: 560px; margin: 20px auto 0; padding: 14px 16px; border-radius: 10px; font-size: 13.5px; text-align: center; }
+  .banner.error{ background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
+
+  .topband{ background: var(--panel); border-bottom: 1px solid var(--line); padding: 48px 24px 36px; text-align: center; }
+  .topband .eyebrow{ font-family: 'Gowun Dodum', sans-serif; font-size: 13px; color: var(--gold); font-weight: 600; margin-bottom: 10px; }
+  .topband h1{ font-family: 'Gowun Dodum', sans-serif; font-weight: 600; font-size: 30px; margin: 0 0 10px; letter-spacing: -0.01em; color: var(--ink); }
+  .topband p{ color: var(--ink-soft); font-size: 14.5px; margin: 0; max-width: 420px; margin-inline: auto; }
+
+  .wrap{ max-width: 560px; margin: 0 auto; padding: 36px 20px 80px; }
+
+  .notice{ background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; font-size: 13.5px; color: var(--ink-soft); margin-bottom: 28px; display: flex; gap: 10px; align-items: flex-start; }
+  .notice svg{ flex-shrink: 0; margin-top: 2px; color: var(--gold); }
+
+  form{ background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 36px 32px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .field{ margin-bottom: 22px; position: relative; }
+  .field:last-of-type{ margin-bottom: 0; }
+  .field label{ display: block; font-size: 13.5px; font-weight: 600; color: var(--ink); margin-bottom: 8px; }
+  .field .sub{ font-weight: 400; color: var(--ink-soft); font-size: 12.5px; margin-left: 4px; }
+  .row2{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  input, select, textarea{
+    width: 100%; font-family: inherit; font-size: 14.5px; color: var(--ink);
+    padding: 11px 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg);
+    outline: none; transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  input:focus, select:focus, textarea:focus{ border-color: var(--gold); box-shadow: 0 0 0 3px rgba(138,109,59,0.12); }
+  textarea{ resize: vertical; min-height: 72px; }
+
+  .error-text{ font-size: 12px; color: var(--red); margin-top: 6px; display: none; }
+  .field-hint{ font-size: 12px; color: var(--ink-soft); margin-top: 7px; }
+  .field.invalid input, .field.invalid select{ border-color: var(--red); background: var(--red-bg); }
+  .field.invalid .error-text{ display: block; }
+
+  .divider{ border: none; border-top: 1px solid var(--line); margin: 28px 0; }
+
+  .submit-btn{ width: 100%; margin-top: 28px; padding: 14px; background: var(--gold-deep); color: #fff; border: none; border-radius: 9px; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .submit-btn:hover{ filter: brightness(0.92); }
+  .submit-btn:disabled{ background: var(--line); color: var(--ink-soft); cursor: not-allowed; }
+
+  .result{ max-width: 560px; margin: 0 auto; padding: 80px 20px; text-align: center; }
+  .result .check{ width: 56px; height: 56px; border-radius: 50%; background: var(--green); color: #fff; display: flex; align-items:center; justify-content:center; margin: 0 auto 22px; }
+  .result h2{ font-family: 'Gowun Dodum', sans-serif; font-size: 22px; margin: 0 0 10px; }
+  .result p{ color: var(--ink-soft); font-size: 14.5px; margin: 0 0 28px; }
+  .result-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; text-align: left; font-size: 13.5px; display: grid; grid-template-columns: 84px 1fr; row-gap: 10px; }
+  .result-card dt{ color: var(--ink-soft); }
+  .result-card dd{ margin: 0; font-weight: 500; }
+  .again-btn{ margin-top: 24px; background: none; border: 1px solid var(--line); color: var(--ink); padding: 10px 18px; border-radius: 8px; font-family: inherit; font-size: 13.5px; cursor: pointer; }
+  .again-btn:hover{ background: var(--bg); }
+
+  .tab-row{ max-width: 560px; margin: 0 auto; padding: 0 20px; display: flex; gap: 8px; margin-top: -8px; margin-bottom: 8px; }
+  .tab-btn{ flex: 1; padding: 11px; border-radius: 9px 9px 0 0; border: 1px solid var(--line); border-bottom: none; background: var(--bg); color: var(--ink-soft); font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+  .tab-btn.active{ background: var(--gold); color: #fff; }
+
+  .lookup-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; }
+  .lookup-card .lc-top{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .lookup-card .lc-branch{ font-family: 'Gowun Dodum', sans-serif; font-size: 15.5px; font-weight: 600; }
+  .lookup-card dl{ display: grid; grid-template-columns: 70px 1fr; row-gap: 6px; font-size: 13px; margin: 0; }
+  .lookup-card dt{ color: var(--ink-soft); }
+  .lookup-card dd{ margin: 0; }
+  .lookup-empty{ text-align: center; padding: 50px 20px; color: var(--ink-soft); font-size: 13.5px; }
+
+  .pill{ display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; border: none; font-family: inherit; }
+  .pill.대기{ background: var(--amber); color: #fff; }
+  .pill.승인{ background: var(--green); color: #fff; }
+  .pill.거절{ background: var(--red); color: #fff; }
+
+  #f-date{ position: relative; }
+  .cal-popup{ display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; width: 300px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); padding: 16px; }
+  .cal-popup.open{ display: block; }
+  .cal-header{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .cal-title{ font-weight: 600; font-size: 14.5px; font-family: 'Gowun Dodum', sans-serif; }
+  .cal-nav{ width: 28px; height: 28px; border: 1px solid var(--line); background: var(--panel); border-radius: 7px; font-size: 15px; color: var(--ink-soft); cursor: pointer; display: flex; align-items:center; justify-content:center; }
+  .cal-nav:hover{ background: var(--bg); }
+  .cal-nav:disabled{ opacity: 0.3; cursor: not-allowed; }
+  .cal-nav:disabled:hover{ background: var(--panel); }
+  .cal-weekdays{ display: grid; grid-template-columns: repeat(7, 1fr); font-size: 11.5px; color: var(--ink-soft); text-align: center; margin-bottom: 4px; }
+  .cal-grid{ display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; }
+  .cal-day{ aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border: none; background: none; border-radius: 8px; cursor: pointer; color: var(--ink); font-family: inherit; }
+  .cal-day:hover:not(:disabled){ background: var(--amber-bg); }
+  .cal-day.empty{ visibility: hidden; cursor: default; }
+  .cal-day:disabled{ color: var(--line); cursor: not-allowed; text-decoration: line-through; }
+  .cal-day.today{ font-weight: 700; color: var(--gold-deep); }
+  .cal-day.selected{ background: var(--gold-deep); color: #fff; }
+  .cal-legend{ display: flex; gap: 14px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 11px; color: var(--ink-soft); align-items: center; }
+  .cal-legend .dot{ display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--line); margin-right: 5px; vertical-align: -1px; }
+
+  @media (max-width: 480px){
+    .row2{ grid-template-columns: 1fr; }
+    form{ padding: 26px 20px; }
+    .topband h1{ font-size: 25px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topband">
+  <div class="eyebrow">휴가 사용 활성화 이벤트</div>
+  <h1>라한호텔 이용 신청</h1>
+  <p>평일 이용에 한해 신청을 받고 있습니다. 신청 내용은 담당자 확인 후 예약실로 전달됩니다.</p>
+</div>
+
+<div id="apiErrorBanner" class="banner error hidden">
+  지금은 신청 서버에 연결할 수 없습니다. 잠시 후 새로고침 후 다시 시도해 주세요.
+</div>
+
+<div class="tab-row" id="applyTabRow">
+  <button type="button" class="tab-btn active" data-tab="form">신청하기</button>
+  <button type="button" class="tab-btn" data-tab="lookup">내 신청 조회</button>
+</div>
+
+<div class="wrap" id="formView">
+  <div class="notice">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.3"/><path d="M8 7.2V11.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="4.9" r="0.9" fill="currentColor"/></svg>
+    <span>신청은 <strong>2026년 10월~12월</strong> 중 <strong>일~목요일</strong>만 가능하며, 금·토요일·공휴일 및 담당자가 마감 처리한 날짜는 선택할 수 없습니다. 확정 여부는 담당자가 별도로 안내드립니다.</span>
+  </div>
+
+  <form id="applyForm" novalidate>
+    <div class="row2">
+      <div class="field" id="f-name">
+        <label>이름</label>
+        <input type="text" id="name" placeholder="홍길동" autocomplete="off">
+        <div class="error-text">이름을 입력해 주세요.</div>
+      </div>
+      <div class="field" id="f-empid">
+        <label>사번</label>
+        <input type="text" id="empid" placeholder="예: 312456" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+        <div class="error-text">사번을 입력해 주세요.</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="field" id="f-branch">
+      <label>이용 지점</label>
+      <select id="branch">
+        <option value="">지점을 선택해 주세요</option>
+        <option value="경주">라한호텔 경주</option>
+        <option value="전주">라한호텔 전주</option>
+        <option value="포항">라한호텔 포항</option>
+        <option value="목포">라한호텔 목포</option>
+        <option value="울산">라한호텔 울산</option>
+      </select>
+      <div class="error-text">지점을 선택해 주세요.</div>
+      <div class="field-hint">전 지점 모두 2인 기준 객실로 운영됩니다.</div>
+    </div>
+
+    <div class="field" id="f-roomtype">
+      <label>룸 타입</label>
+      <select id="roomtype">
+        <option value="">룸 타입을 선택해 주세요</option>
+        <option value="디럭스 더블">디럭스 더블</option>
+        <option value="디럭스 트윈">디럭스 트윈</option>
+      </select>
+      <div class="error-text">룸 타입을 선택해 주세요.</div>
+    </div>
+
+    <div class="field" id="f-date">
+      <label>희망 이용일 <span class="sub">일~목요일만 선택 가능 · 10~12월 접수</span></label>
+      <input type="text" id="dateDisplay" readonly placeholder="날짜를 선택해 주세요" autocomplete="off">
+      <div class="error-text" id="dateError">일~목요일 중 마감되지 않은 날짜를 선택해 주세요.</div>
+
+      <div class="cal-popup" id="calPopup">
+        <div class="cal-header">
+          <button type="button" class="cal-nav" id="calPrev" aria-label="이전 달">&#8249;</button>
+          <div class="cal-title" id="calTitle"></div>
+          <button type="button" class="cal-nav" id="calNext" aria-label="다음 달">&#8250;</button>
+        </div>
+        <div class="cal-weekdays"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-legend"><span><i class="dot"></i>선택 불가(금·토·공휴일·마감·기간 외)</span></div>
+      </div>
+    </div>
+
+    <div class="field" id="f-nights">
+      <label>박수</label>
+      <select id="nights">
+        <option value="1박2일">1박 2일</option>
+        <option value="2박3일">2박 3일</option>
+      </select>
+      <div class="error-text" id="nightsError">해당 박수로는 주말이 포함되어 신청할 수 없습니다.</div>
+      <div class="field-hint">일정에 금·토요일이 포함되면 선택할 수 없습니다.</div>
+    </div>
+
+    <div class="field">
+      <label>요청사항 <span class="sub">선택</span></label>
+      <textarea id="memo" placeholder="객실 유형, 동행 인원 관계 등 참고할 내용이 있으면 적어주세요."></textarea>
+    </div>
+
+    <button type="submit" class="submit-btn" id="submitBtn">신청서 제출</button>
+  </form>
+</div>
+
+<div class="wrap result" id="resultView" style="display:none;">
+  <div class="check">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 12.5L10 17L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <h2>신청이 접수되었습니다</h2>
+  <p>담당자 확인 후 예약실로 전달됩니다. 확정 여부는 별도 연락드립니다.</p>
+  <dl class="result-card" id="resultCard"></dl>
+  <button class="again-btn" id="againBtn">새 신청 작성하기</button>
+</div>
+
+<div class="wrap hidden" id="lookupView">
+  <div class="notice">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.3"/><path d="M8 7.2V11.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="4.9" r="0.9" fill="currentColor"/></svg>
+    <span>신청 시 입력한 <strong>이름과 사번</strong>을 입력하면 지금까지의 신청 현황을 확인할 수 있습니다.</span>
+  </div>
+
+  <form id="lookupForm" novalidate>
+    <div class="row2">
+      <div class="field" id="f-lookup-name">
+        <label>이름</label>
+        <input type="text" id="lookupName" placeholder="홍길동" autocomplete="off">
+        <div class="error-text">이름을 입력해 주세요.</div>
+      </div>
+      <div class="field" id="f-lookup-empid">
+        <label>사번</label>
+        <input type="text" id="lookupEmpid" placeholder="예: 312456" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+        <div class="error-text">사번을 입력해 주세요.</div>
+      </div>
+    </div>
+    <button type="submit" class="submit-btn" id="lookupBtn">조회하기</button>
+  </form>
+
+  <div id="lookupResults"></div>
+</div>
+
+<script>
+/* =========================================================
+   설정: 여기에 구글 앱스 스크립트 웹 앱 URL을 붙여넣으세요
+   ========================================================= */
+const CONFIG = {
+  API_URL: 'https://script.google.com/macros/s/AKfycbxMZNBZCmYJJqFS9HX-YaKoWGmYxOIGW5oNT3csa3UsPwqmEZftuzbCcBItFq697duBeg/exec'
+};
+
+async function apiGet(action, params){
+  const url = new URL(CONFIG.API_URL);
+  url.searchParams.set('action', action);
+  if(params){
+    Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+  }
+  const res = await fetch(url.toString());
+  if(!res.ok) throw new Error('네트워크 오류');
+  const json = await res.json();
+  if(!json.ok) throw new Error(json.error || '알 수 없는 오류');
+  return json.data;
+}
+async function apiPost(action, payload){
+  const body = Object.assign({ action }, payload || {});
+  const res = await fetch(CONFIG.API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // CORS preflight 회피용
+    body: JSON.stringify(body)
+  });
+  if(!res.ok) throw new Error('네트워크 오류');
+  const json = await res.json();
+  if(!json.ok) throw new Error(json.error || '알 수 없는 오류');
+  return json.data;
+}
+
+const HOLIDAYS_2026 = new Set([
+  '2026-01-01','2026-02-16','2026-02-17','2026-02-18',
+  '2026-03-01','2026-03-02','2026-05-01','2026-05-05',
+  '2026-05-24','2026-05-25','2026-06-03','2026-06-06',
+  '2026-07-17','2026-08-15','2026-08-17',
+  '2026-09-24','2026-09-25','2026-09-26',
+  '2026-10-03','2026-10-05','2026-10-09','2026-12-25',
+]);
+const weekdayKo = ['일','월','화','수','목','금','토'];
+
+function isWeekday(dateStr){
+  const day = new Date(dateStr + 'T00:00:00').getDay();
+  return day >= 0 && day <= 4;
+}
+function isHoliday(dateStr){ return HOLIDAYS_2026.has(dateStr); }
+
+const RANGE_START = '2026-10-01';
+const RANGE_END = '2026-12-31';
+function inAllowedRange(dateStr){ return dateStr >= RANGE_START && dateStr <= RANGE_END; }
+
+let blockedDates = new Set();
+
+function occupiedNights(dateStr, nightsValue){
+  const count = nightsValue === '2박3일' ? 2 : 1;
+  const start = new Date(dateStr + 'T00:00:00');
+  const arr = [];
+  for(let i=0; i<count; i++){
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    arr.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+  }
+  return arr;
+}
+function isNightBlocked(dateStr){
+  const day = new Date(dateStr + 'T00:00:00').getDay();
+  if(day === 5 || day === 6) return true;
+  if(isHoliday(dateStr)) return true;
+  if(blockedDates.has(dateStr)) return true;
+  return false;
+}
+function isStayValid(dateStr, nightsValue){
+  if(!dateStr) return false;
+  return occupiedNights(dateStr, nightsValue).every(d => !isNightBlocked(d));
+}
+function isSelectableDate(dateStr){
+  return isWeekday(dateStr) && !isHoliday(dateStr) && !blockedDates.has(dateStr) && inAllowedRange(dateStr);
+}
+
+function statusLabel(status){
+  if(status === '승인') return '승인됨';
+  if(status === '거절') return '거절됨';
+  return '대기중';
+}
+function applyStatusPillClass(el, status){
+  el.className = 'pill ' + (status === '승인' || status === '거절' ? status : '대기');
+  el.textContent = statusLabel(status);
+}
+
+function escapeHtml(str){
+  if(str === undefined || str === null) return '';
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+async function loadBlockedDates(){
+  try{
+    const data = await apiGet('blocked');
+    blockedDates = new Set(data || []);
+    document.getElementById('apiErrorBanner').classList.add('hidden');
+  }catch(err){
+    console.warn('마감일 로드 실패', err);
+    document.getElementById('apiErrorBanner').classList.remove('hidden');
+  }
+  renderCalendar();
+}
+loadBlockedDates();
+
+/* ---------- 캘린더 ---------- */
+function todayStr(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function pad2(n){ return String(n).padStart(2,'0'); }
+
+const dateDisplay = document.getElementById('dateDisplay');
+const calPopup = document.getElementById('calPopup');
+const calGrid = document.getElementById('calGrid');
+const calTitle = document.getElementById('calTitle');
+
+const todayObj = new Date();
+todayObj.setHours(0,0,0,0);
+const RANGE_MIN = { year: 2026, month: 9 };
+const RANGE_MAX = { year: 2026, month: 11 };
+let calViewYear = todayObj.getFullYear();
+let calViewMonth = todayObj.getMonth();
+if(calViewYear < RANGE_MIN.year || (calViewYear === RANGE_MIN.year && calViewMonth < RANGE_MIN.month)){
+  calViewYear = RANGE_MIN.year; calViewMonth = RANGE_MIN.month;
+} else if(calViewYear > RANGE_MAX.year || (calViewYear === RANGE_MAX.year && calViewMonth > RANGE_MAX.month)){
+  calViewYear = RANGE_MAX.year; calViewMonth = RANGE_MAX.month;
+}
+let selectedDateStr = '';
+
+function clearError(fieldId){ document.getElementById(fieldId).classList.remove('invalid'); }
+function setError(fieldId){ document.getElementById(fieldId).classList.add('invalid'); }
+
+['name','empid'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', ()=> clearError('f-'+id));
+});
+document.getElementById('empid').addEventListener('input', (e)=>{
+  e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 6);
+});
+document.getElementById('branch').addEventListener('change', ()=> clearError('f-branch'));
+document.getElementById('roomtype').addEventListener('change', ()=> clearError('f-roomtype'));
+
+function renderCalendar(){
+  calTitle.textContent = `${calViewYear}년 ${calViewMonth+1}월`;
+  calGrid.innerHTML = '';
+
+  const atMin = (calViewYear === RANGE_MIN.year && calViewMonth === RANGE_MIN.month);
+  const atMax = (calViewYear === RANGE_MAX.year && calViewMonth === RANGE_MAX.month);
+  document.getElementById('calPrev').disabled = atMin;
+  document.getElementById('calNext').disabled = atMax;
+
+  const firstDay = new Date(calViewYear, calViewMonth, 1);
+  const startWeekday = firstDay.getDay();
+  const daysInMonth = new Date(calViewYear, calViewMonth+1, 0).getDate();
+
+  for(let i=0; i<startWeekday; i++){
+    const empty = document.createElement('div');
+    empty.className = 'cal-day empty';
+    calGrid.appendChild(empty);
+  }
+
+  for(let day=1; day<=daysInMonth; day++){
+    const dateStr = `${calViewYear}-${pad2(calViewMonth+1)}-${pad2(day)}`;
+    const dObj = new Date(calViewYear, calViewMonth, day);
+    dObj.setHours(0,0,0,0);
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cal-day';
+    btn.textContent = day;
+
+    const isPast = dObj < todayObj;
+    const blocked = isPast || !isSelectableDate(dateStr);
+
+    if(blocked) btn.disabled = true;
+    if(dateStr === todayStr()) btn.classList.add('today');
+    if(dateStr === selectedDateStr) btn.classList.add('selected');
+
+    if(!blocked){
+      btn.addEventListener('click', ()=>{
+        selectedDateStr = dateStr;
+        const wd = weekdayKo[dObj.getDay()];
+        dateDisplay.value = `${dateStr} (${wd})`;
+        clearError('f-date');
+        calPopup.classList.remove('open');
+        renderCalendar();
+        refreshNightsValidity();
+      });
+    }
+    calGrid.appendChild(btn);
+  }
+}
+renderCalendar();
+
+document.getElementById('calPrev').addEventListener('click', ()=>{
+  if(calViewYear === RANGE_MIN.year && calViewMonth === RANGE_MIN.month) return;
+  calViewMonth--; if(calViewMonth < 0){ calViewMonth = 11; calViewYear--; }
+  renderCalendar();
+});
+document.getElementById('calNext').addEventListener('click', ()=>{
+  if(calViewYear === RANGE_MAX.year && calViewMonth === RANGE_MAX.month) return;
+  calViewMonth++; if(calViewMonth > 11){ calViewMonth = 0; calViewYear++; }
+  renderCalendar();
+});
+dateDisplay.addEventListener('click', ()=>{
+  renderCalendar();
+  calPopup.classList.add('open');
+});
+document.addEventListener('click', (e)=>{
+  if(!e.target.closest('#f-date')) calPopup.classList.remove('open');
+});
+
+function refreshNightsValidity(){
+  const nightsSelect = document.getElementById('nights');
+  clearError('f-nights');
+  Array.from(nightsSelect.options).forEach(opt=>{
+    const valid = !selectedDateStr || isStayValid(selectedDateStr, opt.value);
+    opt.disabled = !valid;
+    opt.title = valid ? '' : '금·토요일이 포함되어 선택할 수 없습니다.';
+  });
+  if(selectedDateStr && !isStayValid(selectedDateStr, nightsSelect.value)){
+    const fallback = Array.from(nightsSelect.options).find(o => !o.disabled);
+    if(fallback) nightsSelect.value = fallback.value;
+  }
+}
+document.getElementById('nights').addEventListener('change', (e)=>{
+  if(selectedDateStr && !isStayValid(selectedDateStr, e.target.value)){
+    setError('f-nights');
+  } else {
+    clearError('f-nights');
+  }
+});
+
+/* ---------- 제출 ---------- */
+let statusPollTimer = null;
+
+document.getElementById('applyForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+
+  const name = document.getElementById('name').value.trim();
+  const empid = document.getElementById('empid').value.trim();
+  const branch = document.getElementById('branch').value;
+  const roomtype = document.getElementById('roomtype').value;
+  const date = selectedDateStr;
+  const nights = document.getElementById('nights').value;
+  const memo = document.getElementById('memo').value.trim();
+
+  let valid = true;
+  if(!name){ setError('f-name'); valid = false; }
+  if(!empid){ setError('f-empid'); valid = false; }
+  if(!branch){ setError('f-branch'); valid = false; }
+  if(!roomtype){ setError('f-roomtype'); valid = false; }
+  if(!date || !isSelectableDate(date)){ setError('f-date'); valid = false; }
+  if(date && !isStayValid(date, nights)){ setError('f-nights'); valid = false; }
+  if(!valid) return;
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = '제출 중...';
+
+  try{
+    const result = await apiPost('submit', { data: { name, empid, branch, roomtype, date, nights, memo } });
+
+    document.getElementById('formView').style.display = 'none';
+    const rc = document.getElementById('resultCard');
+    const wd = weekdayKo[new Date(date+'T00:00:00').getDay()];
+    rc.innerHTML = `
+      <dt>신청번호</dt><dd><strong>${escapeHtml(result.appNo)}</strong></dd>
+      <dt>신청자</dt><dd>${escapeHtml(name)} (사번 ${escapeHtml(empid)})</dd>
+      <dt>지점</dt><dd>라한호텔 ${escapeHtml(branch)}</dd>
+      <dt>룸 타입</dt><dd>${escapeHtml(roomtype)}</dd>
+      <dt>이용일</dt><dd>${date} (${wd}요일)</dd>
+      <dt>인원</dt><dd>2명 · ${nights}</dd>
+      <dt>상태</dt><dd><span class="pill 대기" id="resultStatusPill">대기중</span></dd>
+    `;
+    document.getElementById('resultView').style.display = 'block';
+    window.scrollTo(0,0);
+
+    if(statusPollTimer) clearInterval(statusPollTimer);
+    const resultId = result.id;
+    statusPollTimer = setInterval(async ()=>{
+      try{
+        const app = await apiGet('status', { id: resultId });
+        if(app && app.status){
+          const pill = document.getElementById('resultStatusPill');
+          if(pill) applyStatusPillClass(pill, app.status);
+        }
+      }catch(err){ /* 조용히 무시 */ }
+    }, 10000);
+  }catch(err){
+    console.error(err);
+    alert('신청 접수 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+    submitBtn.disabled = false;
+    submitBtn.textContent = '신청서 제출';
+  }
+});
+
+document.getElementById('againBtn').addEventListener('click', ()=>{
+  if(statusPollTimer){ clearInterval(statusPollTimer); statusPollTimer = null; }
+  document.getElementById('applyForm').reset();
+  selectedDateStr = '';
+  dateDisplay.value = '';
+  ['f-name','f-empid','f-branch','f-roomtype','f-date','f-nights'].forEach(clearError);
+  refreshNightsValidity();
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('submitBtn').textContent = '신청서 제출';
+  document.getElementById('resultView').style.display = 'none';
+  document.getElementById('formView').style.display = 'block';
+  window.scrollTo(0,0);
+});
+
+/* ---------- 탭 전환 ---------- */
+document.getElementById('applyTabRow').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.tab-btn');
+  if(!btn) return;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const isLookup = btn.dataset.tab === 'lookup';
+  document.getElementById('lookupView').classList.toggle('hidden', !isLookup);
+  document.getElementById('formView').style.display = isLookup ? 'none' : 'block';
+  document.getElementById('resultView').style.display = 'none';
+  window.scrollTo(0,0);
+});
+
+/* ---------- 내 신청 조회 ---------- */
+function clearLookupError(fieldId){ document.getElementById(fieldId).classList.remove('invalid'); }
+function setLookupError(fieldId){ document.getElementById(fieldId).classList.add('invalid'); }
+['lookupName','lookupEmpid'].forEach(id=>{
+  const fieldId = id === 'lookupName' ? 'f-lookup-name' : 'f-lookup-empid';
+  document.getElementById(id).addEventListener('input', ()=> clearLookupError(fieldId));
+});
+document.getElementById('lookupEmpid').addEventListener('input', (e)=>{
+  e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 6);
+});
+
+function renderLookupResults(items){
+  const wrap = document.getElementById('lookupResults');
+  if(items.length === 0){
+    wrap.innerHTML = '<div class="lookup-empty">일치하는 신청 내역이 없습니다. 이름과 사번을 다시 확인해 주세요.</div>';
+    return;
+  }
+  const sorted = [...items].sort((a,b)=> new Date(b.submittedAt) - new Date(a.submittedAt));
+  wrap.innerHTML = sorted.map(item=>{
+    const d = new Date(item.date + 'T00:00:00');
+    const wd = weekdayKo[d.getDay()];
+    return `
+    <div class="lookup-card">
+      <div class="lc-top">
+        <span class="lc-branch">라한호텔 ${escapeHtml(item.branch)}</span>
+        <span class="pill ${item.status === '승인' || item.status === '거절' ? item.status : '대기'}">${statusLabel(item.status)}</span>
+      </div>
+      <dl>
+        <dt>신청번호</dt><dd>${escapeHtml(item.appNo || '-')}</dd>
+        <dt>룸 타입</dt><dd>${escapeHtml(item.roomtype || '-')}</dd>
+        <dt>이용일</dt><dd>${item.date} (${wd}요일)</dd>
+        <dt>박수</dt><dd>2명 · ${escapeHtml(item.nights)}</dd>
+        ${item.reservationNo ? `<dt>예약번호</dt><dd>${escapeHtml(item.reservationNo)}</dd>` : ''}
+      </dl>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('lookupForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const name = document.getElementById('lookupName').value.trim();
+  const empid = document.getElementById('lookupEmpid').value.trim();
+
+  let valid = true;
+  if(!name){ setLookupError('f-lookup-name'); valid = false; } else { clearLookupError('f-lookup-name'); }
+  if(!empid){ setLookupError('f-lookup-empid'); valid = false; } else { clearLookupError('f-lookup-empid'); }
+  if(!valid) return;
+
+  const btn = document.getElementById('lookupBtn');
+  btn.disabled = true;
+  btn.textContent = '조회 중...';
+  document.getElementById('lookupResults').innerHTML = '';
+
+  try{
+    const items = await apiGet('lookup', { name, empid });
+    renderLookupResults(items || []);
+  }catch(err){
+    console.error(err);
+    document.getElementById('lookupResults').innerHTML = '<div class="lookup-empty">조회 중 오류가 발생했습니다.</div>';
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '조회하기';
+  }
+});
+</script>
+
+</body>
+</html>
