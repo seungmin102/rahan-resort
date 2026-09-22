@@ -70,7 +70,8 @@ Apps Script가 최초 요청 시 아래 두 시트를 자동 생성함.
 
 | action | 파라미터 | 설명 | 응답 데이터 |
 |---|---|---|---|
-| `list` | - | 전체 신청 목록 조회 (관리자용) | `Application[]` |
+| `adminData` | - | **관리자 화면이 쓰는 기본 조회.** 신청 목록 + 마감일을 한 번의 실행으로 함께 반환 | `{ applications: Application[], blocked: string[] }` |
+| `list` | - | 전체 신청 목록 조회 (하위 호환용) | `Application[]` |
 | `blocked` | - | 마감일 목록 조회 | `string[]` (YYYY-MM-DD 배열) |
 | `lookup` | `name`, `empid` | 이름+사번으로 본인 신청 내역 조회 | `Application[]` |
 | `status` | `id` | 신청 1건의 현재 상태만 조회 (완료 화면 폴링용) | `Application \| null` |
@@ -151,7 +152,7 @@ body는 JSON 문자열, `{ "action": "...", ...payload }` 형태.
 - **폰트**: 제목/헤딩류는 `Gowun Dodum`(둥글고 가독성 좋은 손글씨 느낌), 본문은 `Gothic A1`. Google Fonts CDN 사용.
 
 ## 7. 알려진 이슈 / 주의사항
-1. **Apps Script 응답 속도**: 무료 서비스 특성상 요청당 1~3초 정도 소요됨. 완전한 즉각 반응을 원하면 별도의 정식 백엔드(Node.js+DB 등)로 이전 필요.
+1. **Apps Script 응답 속도**: 무료 서비스 특성상 요청당 1~3초 정도 소요됨(컨테이너 기동 + `/exec` → `script.googleusercontent.com` 리다이렉트로 왕복이 2회). 줄일 수 있는 건 **요청 횟수**뿐이라, 관리자 새로고침은 `adminData` 1건으로 합쳤고, 마감일 추가/해제는 전체 재조회 대신 로컬 상태만 갱신하며, 중복 호출은 진행 중인 요청에 합류시킨다(`inFlightLoad`). 받은 데이터가 이전과 같으면 표를 다시 그리지 않는다. 그래도 요청당 1~3초는 남으므로, 완전한 즉각 반응을 원하면 별도의 정식 백엔드(Node.js+DB 등)로 이전 필요.
 2. **테스트 환경 주의**: `file:///` 로컬 파일이나 Claude 앱 내장 미리보기(샌드박스)에서 열면 외부 fetch 요청이 차단되어 정상 동작하지 않음. 반드시 실제 https 호스팅 환경(GitHub Pages 등)에서 테스트할 것.
 3. **파일명 주의**: GitHub Pages는 파일명 그대로 URL 경로가 됨. `apply.html`/`admin.html` 이름이 뒤바뀌면 엉뚱한 화면이 뜨므로 업로드 시 파일명 재확인 필요.
 4. ~~**서버 측 검증 미비**~~ → 해결됨. `submit`/`blockDate`/`updateStatus`가 서버에서도 요일·기간·공휴일·마감일·선택지를 검증함(3.3 참고). 단, 규칙 상수가 `Code.gs`와 `apply.html`에 이중으로 존재하므로 갱신 시 두 곳을 모두 고쳐야 함.

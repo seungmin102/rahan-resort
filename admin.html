@@ -211,13 +211,23 @@ const CONFIG = {
   API_URL: 'https://script.google.com/macros/s/AKfycbxMZNBZCmYJJqFS9HX-YaKoWGmYxOIGW5oNT3csa3UsPwqmEZftuzbCcBItFq697duBeg/exec'
 };
 
+const REQUEST_TIMEOUT_MS = 30000;
+
+// Apps Script 가 응답하지 않을 때 버튼이 영원히 잠기지 않도록 시간 제한을 둔다.
+function fetchWithTimeout(url, options){
+  const controller = new AbortController();
+  const timer = setTimeout(()=> controller.abort(), REQUEST_TIMEOUT_MS);
+  return fetch(url, Object.assign({}, options, { signal: controller.signal }))
+    .finally(()=> clearTimeout(timer));
+}
+
 async function apiGet(action, params){
   const url = new URL(CONFIG.API_URL);
   url.searchParams.set('action', action);
   if(params){
     Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
   }
-  const res = await fetch(url.toString());
+  const res = await fetchWithTimeout(url.toString());
   if(!res.ok) throw new Error('네트워크 오류');
   const json = await res.json();
   if(!json.ok) throw new Error(json.error || '알 수 없는 오류');
@@ -225,7 +235,7 @@ async function apiGet(action, params){
 }
 async function apiPost(action, payload){
   const body = Object.assign({ action }, payload || {});
-  const res = await fetch(CONFIG.API_URL, {
+  const res = await fetchWithTimeout(CONFIG.API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(body)
@@ -259,19 +269,43 @@ function showApiError(show){
   document.getElementById('apiErrorBanner').classList.toggle('hidden', !show);
 }
 
-async function loadAll(){
-  try{
-    const [apps, blocked] = await Promise.all([ apiGet('list'), apiGet('blocked') ]);
-    allApplications = (apps || []).sort((a,b)=> new Date(b.submittedAt) - new Date(a.submittedAt));
-    blockedDates = new Set(blocked || []);
-    showApiError(false);
-  }catch(err){
-    console.warn('데이터 로드 실패', err);
-    showApiError(true);
-  }
-  renderBlockedList();
-  renderStats();
-  requestRender();
+let inFlightLoad = null;
+let lastDataSignature = null;
+
+/* 새로고침은 요청 1건(adminData)으로 끝낸다. 예전에는 list 와 blocked 를
+   따로 받아서 Apps Script 실행이 두 번 일어났다(요청당 1~3초).
+   이미 진행 중인 요청이 있으면 새로 쏘지 않고 그 결과를 같이 기다린다 —
+   20초 자동 새로고침과 수동 새로고침이 겹치면 Apps Script 쪽에서
+   순서대로 처리되면서 체감 대기가 두 배로 늘어나기 때문이다. */
+function loadAll(){
+  if(inFlightLoad) return inFlightLoad;
+  inFlightLoad = (async ()=>{
+    try{
+      const data = await apiGet('adminData');
+      const apps = (data && data.applications) || [];
+      const blocked = (data && data.blocked) || [];
+      const signature = JSON.stringify([apps, blocked]);
+
+      allApplications = apps.sort((a,b)=> new Date(b.submittedAt) - new Date(a.submittedAt));
+      blockedDates = new Set(blocked);
+      showApiError(false);
+
+      if(signature === lastDataSignature) return; // 바뀐 게 없으면 다시 그리지 않는다
+      lastDataSignature = signature;
+      renderBlockedList();
+      renderStats();
+      requestRender();
+    }catch(err){
+      console.warn('데이터 로드 실패', err);
+      showApiError(true);
+      renderBlockedList();
+      renderStats();
+      requestRender();
+    }finally{
+      inFlightLoad = null;
+    }
+  })();
+  return inFlightLoad;
 }
 loadAll();
 setInterval(loadAll, 20000); // 20초마다 자동 새로고침
@@ -301,9 +335,15 @@ document.getElementById('dataTable').addEventListener('focusout', ()=>{
 
 document.getElementById('refreshBtn').addEventListener('click', async ()=>{
   const btn = document.getElementById('refreshBtn');
+  const label = btn.textContent;
   btn.disabled = true;
-  await loadAll();
-  btn.disabled = false;
+  btn.textContent = '불러오는 중...';
+  try{
+    await loadAll();
+  }finally{
+    btn.disabled = false;
+    btn.textContent = label;
+  }
 });
 
 /* ---------- 마감일 관리 ---------- */
@@ -323,10 +363,20 @@ function renderBlockedList(){
   }).join('');
   document.querySelectorAll('.unblockBtn').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
+      const date = btn.dataset.date;
+      btn.disabled = true;
       try{
-        await apiPost('unblockDate', { date: btn.dataset.date });
-        await loadAll();
-      }catch(err){ console.error(err); alert('마감 해제 중 오류가 발생했습니다.'); }
+        await apiPost('unblockDate', { date });
+        // 서버가 받아들였으면 결과는 이미 알고 있다. 전체를 다시 받아오면
+        // Apps Script 왕복이 한 번 더 생기므로 로컬 상태만 갱신한다.
+        blockedDates.delete(date);
+        lastDataSignature = null;
+        renderBlockedList();
+      }catch(err){
+        console.error(err);
+        btn.disabled = false;
+        alert('마감 해제 중 오류가 발생했습니다.');
+      }
     });
   });
 }
@@ -345,11 +395,20 @@ document.getElementById('addBlockBtn').addEventListener('click', async ()=>{
   if(!inAllowedRange(val)){ alert('접수 기간(2026년 10월~12월) 내의 날짜만 마감 처리할 수 있습니다.'); return; }
   if(!isWeekday(val)){ alert('일~목요일만 마감 처리할 수 있습니다. 금·토·공휴일은 이미 신청이 불가능합니다.'); return; }
   if(blockedDates.has(val)){ alert('이미 마감 처리된 날짜입니다.'); return; }
+  const addBtn = document.getElementById('addBlockBtn');
+  addBtn.disabled = true;
   try{
     await apiPost('blockDate', { date: val });
     input.value = '';
-    await loadAll();
-  }catch(err){ console.error(err); alert('마감 처리 중 오류가 발생했습니다.'); }
+    blockedDates.add(val);
+    lastDataSignature = null;
+    renderBlockedList();
+  }catch(err){
+    console.error(err);
+    alert('마감 처리 중 오류가 발생했습니다.');
+  }finally{
+    addBtn.disabled = false;
+  }
 });
 
 /* ---------- 목록 필터/렌더 ---------- */

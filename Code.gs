@@ -66,6 +66,15 @@ function doGet(e){
     if(action === 'blocked'){
       return jsonResponse({ ok:true, data: getAllBlockedDates() });
     }
+    if(action === 'adminData'){
+      // 관리자 화면이 쓰는 list + blocked 를 한 번의 실행으로 함께 돌려준다.
+      // Apps Script 는 요청당 고정 오버헤드(컨테이너 기동, /exec 리다이렉트)가
+      // 커서, 같은 데이터를 두 번 나눠 받으면 그 비용을 두 번 낸다.
+      return jsonResponse({ ok:true, data: {
+        applications: getAllApplications(),
+        blocked: getAllBlockedDates()
+      }});
+    }
     if(action === 'lookup'){
       const name = e.parameter.name || '';
       const empid = e.parameter.empid || '';
