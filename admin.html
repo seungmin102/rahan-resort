@@ -88,17 +88,23 @@
   .bulk-bar button.danger{ background: var(--red); border-color: var(--red); color: #fff; }
   .bulk-bar button.delete{ border-color: rgba(255,255,255,0.45); color: #FFC9C9; }
   .bulk-bar button.delete:hover{ background: rgba(220,38,38,0.35); }
-  .deleteBtn{ font-family: inherit; font-size: 12px; padding: 5px 9px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--ink-soft); cursor: pointer; white-space: nowrap; }
+  .deleteBtn{ font-family: inherit; font-size: 11.5px; padding: 4px 7px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--ink-soft); cursor: pointer; white-space: nowrap; }
   .deleteBtn:hover{ border-color: var(--red); color: var(--red); background: rgba(220,38,38,0.06); }
 
   table{ width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   thead tr{ background: var(--bg); }
-  th{ text-align: left; font-size: 12.5px; color: var(--ink-soft); font-weight: 700; padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  td{ padding: 13px 14px; font-size: 13.5px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th{ text-align: left; font-size: 12.5px; color: var(--ink-soft); font-weight: 700; padding: 12px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td{ padding: 13px 10px; font-size: 13.5px; border-bottom: 1px solid var(--line); vertical-align: middle; }
   tbody tr:last-child td{ border-bottom: none; }
   tbody tr:hover{ background: var(--bg); }
-  .memo-cell{ max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-soft); }
-  .reservationInput{ width: 110px; font-family: inherit; font-size: 13px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
+  /* 한글은 글자 단위로 줄바꿈되기 때문에, 폭이 모자라면 "홍길동" 같은 짧은 값도
+     세로로 쪼개진다. 짧은 칸들은 줄바꿈을 막아 최소 폭을 확보하고,
+     남는/모자란 폭은 말줄임 처리가 되어 있는 요청사항 칸이 흡수하게 한다. */
+  .nowrap-cell{ white-space: nowrap; }
+  .memo-cell{ width: 100%; min-width: 64px; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-soft); }
+  /* 그래도 창이 좁으면 표를 누르지 말고 가로로 스크롤한다 */
+  #tableWrap{ overflow-x: auto; }
+  .reservationInput{ width: 95px; font-family: inherit; font-size: 13px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
   .reservationInput:focus{ border-color: var(--gold); outline: none; }
   .pill{ display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px; border-radius: 999px; font-size: 12px; font-weight: 700; border: none; cursor: pointer; font-family: inherit; }
   select.statusSelect{
@@ -122,8 +128,11 @@
     thead{ display:none; }
     tbody tr{ border-bottom: 1px solid var(--line); padding: 14px 16px; }
     td{ border:none; padding: 5px 0; display:flex; justify-content:space-between; gap:10px; }
+    .reservationInput{ width: 130px; }
     td::before{ content: attr(data-label); color: var(--ink-soft); font-size: 12px; flex-shrink: 0; }
-    .memo-cell{ max-width: 60%; text-align:right; }
+    .memo-cell{ width:auto; min-width:0; max-width: 60%; text-align:right; }
+    .nowrap-cell{ white-space: normal; }
+    #tableWrap{ overflow-x: visible; }
   }
 </style>
 </head>
@@ -197,7 +206,7 @@
       <thead>
         <tr>
           <th style="width:36px;"><input type="checkbox" id="selectAll"></th>
-          <th>신청번호</th><th>이름</th><th>사번</th><th>지점</th><th>룸 타입</th><th>이용일</th><th>인원</th><th>박수</th><th>요청사항</th><th>상태</th><th>예약번호</th><th style="width:44px;"></th>
+          <th>신청번호</th><th>이름</th><th>사번</th><th>지점</th><th>룸 타입</th><th>이용일</th><th>인원</th><th>박수</th><th>요청사항</th><th>상태</th><th>예약번호</th><th style="width:36px;"></th>
         </tr>
       </thead>
       <tbody id="tableBody"></tbody>
@@ -465,13 +474,13 @@ function renderAdminTable(){
     <tr data-id="${item.id}">
       <td data-label=""><input type="checkbox" class="rowCheck" data-id="${item.id}" ${checked}></td>
       <td data-label="신청번호" style="font-weight: 700; color: var(--gold-deep);">${escapeHtml(item.appNo || '-')}</td>
-      <td data-label="이름">${escapeHtml(item.name)}</td>
+      <td data-label="이름" class="nowrap-cell">${escapeHtml(item.name)}</td>
       <td data-label="사번">${escapeHtml(item.empid)}</td>
-      <td data-label="지점">라한호텔 ${escapeHtml(item.branch)}</td>
-      <td data-label="룸 타입">${escapeHtml(item.roomtype || '-')}</td>
-      <td data-label="이용일">${item.date} <span class="weekday-tag">(${wd})</span></td>
+      <td data-label="지점" class="nowrap-cell">라한호텔 ${escapeHtml(item.branch)}</td>
+      <td data-label="룸 타입" class="nowrap-cell">${escapeHtml(item.roomtype || '-')}</td>
+      <td data-label="이용일" class="nowrap-cell">${item.date} <span class="weekday-tag">(${wd})</span></td>
       <td data-label="인원">${item.people}명</td>
-      <td data-label="박수">${escapeHtml(item.nights)}</td>
+      <td data-label="박수" class="nowrap-cell">${escapeHtml(item.nights)}</td>
       <td data-label="요청사항" class="memo-cell" title="${escapeHtml(item.memo||'')}">${escapeHtml(item.memo) || '—'}</td>
       <td data-label="상태">
         <select class="statusSelect pill ${item.status}" data-id="${item.id}">
