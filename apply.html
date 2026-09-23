@@ -384,11 +384,18 @@ function applyStatusPillClass(el, status){
   el.textContent = statusLabel(status);
 }
 
+/* 속성값 안에서도 안전해야 한다.
+   textContent -> innerHTML 방식은 & < > 만 바꾸고 따옴표는 그대로 두기 때문에,
+   title="${escapeHtml(memo)}" 같은 자리에 쓰면 직원이 요청사항에 큰따옴표를
+   넣는 것만으로 속성을 새로 만들어 붙일 수 있었다(관리자 화면에서 코드 실행). */
 function escapeHtml(str){
   if(str === undefined || str === null) return '';
-  const d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 async function loadBlockedDates(){
@@ -729,7 +736,7 @@ function renderLookupResults(items){
         ${item.reservationNo ? `<dt>예약번호</dt><dd>${escapeHtml(item.reservationNo)}</dd>` : ''}
       </dl>
       ${cancellable
-        ? `<button type="button" class="cancel-btn" data-id="${item.id}">신청 취소하기</button>`
+        ? `<button type="button" class="cancel-btn" data-id="${escapeHtml(item.id)}">신청 취소하기</button>`
         : (item.status === '취소' ? '<div class="lc-note">취소된 신청입니다.</div>' : '')}
     </div>`;
   }).join('');
