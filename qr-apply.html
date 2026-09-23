@@ -61,8 +61,14 @@
   ol li{ margin-bottom: 6px; }
   ol li:last-child{ margin-bottom: 0; }
 
+  .cols{ display: grid; gap: 30px; }
+  @media (min-width: 620px){
+    .cols{ grid-template-columns: 1fr 1fr; gap: 34px; }
+    .cols section + section{ border-left: 1px solid var(--line); padding-left: 32px; }
+  }
+
   .note{
-    margin-top: 26px; background: var(--bg); border: 1px solid var(--line);
+    margin-top: 18px; background: var(--bg); border: 1px solid var(--line);
     border-radius: 11px; padding: 15px 17px; font-size: 13px;
     color: var(--ink-soft); line-height: 1.65;
   }
@@ -79,15 +85,34 @@
   }
 
   /* 사내 게시용 인쇄: A4 한 장에 들어가고 잉크를 덜 쓰도록 */
+  /* 사내 게시용 인쇄: A4 한 장 안에 전부 들어가도록 조인다.
+     기본 화면 간격 그대로 두면 257px 정도 넘쳐 2장으로 나뉜다. */
   @media print{
-    @page{ size: A4; margin: 14mm; }
+    @page{ size: A4; margin: 12mm; }
     body{ background: #fff; }
     .sheet{ max-width: none; padding: 0; }
-    .card{ border-color: #DDD; }
-    .url{ background: #fff; }
-    .note{ background: #fff; }
-    .qr-frame{ border-color: #DDD; }
-    .qr-frame svg{ width: 200px; height: 200px; }
+    .card{ border-color: #DDD; padding: 22px 24px; break-inside: avoid; }
+
+    h1{ font-size: 27px; margin-bottom: 8px; }
+    .eyebrow{ margin-bottom: 7px; }
+    .lead{ font-size: 13.5px; margin-bottom: 18px; }
+
+    .qr-frame{ border-color: #DDD; padding: 15px; }
+    .qr-frame svg{ width: 226px; height: 226px; }
+    .scan{ font-size: 16px; margin: 15px 0 5px; }
+    .scan-sub{ font-size: 12px; margin-bottom: 12px; }
+    .url{ background: #fff; font-size: 12.5px; padding: 9px 12px; }
+
+    .divider{ margin: 20px 0; }
+    .cols{ gap: 26px; }
+    .cols section + section{ padding-left: 26px; }
+    h2{ font-size: 15px; margin-bottom: 11px; }
+    dl{ row-gap: 9px; font-size: 13px; grid-template-columns: 78px 1fr; }
+    ol{ font-size: 13px; line-height: 1.65; }
+    ol li{ margin-bottom: 4px; }
+
+    .note{ background: #fff; margin-top: 18px; padding: 12px 14px; font-size: 11.5px; }
+    footer{ margin-top: 16px; font-size: 11px; }
   }
 </style>
 </head>
@@ -108,18 +133,20 @@
 
     <div class="divider"></div>
 
+    <div class="cols">
+    <section>
     <h2>이용 안내</h2>
     <dl>
       <dt>접수 기간</dt><dd><span class="highlight">2026년 10월 1일 ~ 12월 31일</span></dd>
-      <dt>이용 요일</dt><dd>일요일 ~ 목요일 <span style="color:var(--ink-soft);">(금·토요일 및 공휴일 이용 불가)</span></dd>
+      <dt>이용 요일</dt><dd>일요일 ~ 목요일<br><span style="color:var(--ink-soft);">금·토요일 및 공휴일은 불가</span></dd>
       <dt>이용 지점</dt><dd>경주 · 전주 · 포항 · 목포 · 울산</dd>
       <dt>룸 타입</dt><dd>디럭스 더블 · 디럭스 트윈</dd>
       <dt>숙박</dt><dd>1박 2일 · 2박 3일</dd>
       <dt>인원</dt><dd>2인 기준</dd>
     </dl>
+    </section>
 
-    <div class="divider"></div>
-
+    <section>
     <h2>신청 방법</h2>
     <ol>
       <li>QR 코드를 찍어 신청 화면에 들어갑니다.</li>
@@ -134,6 +161,9 @@
       진행 상태와 예약번호를 볼 수 있고, 신청을 취소할 수도 있습니다.
       이미 승인된 신청을 취소하실 때는 담당자에게도 알려 주세요.
     </div>
+    </section>
+    </div>
+
   </div>
 
   <footer>문의는 복지 담당자에게 연락해 주세요.</footer>
