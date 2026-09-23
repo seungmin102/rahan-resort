@@ -20,7 +20,7 @@ Claude 아티팩트(claude.ai) 기반이 아니라, **외부에서 로그인 없
 - 배포 주소: `https://seungmin102.github.io/rahan-resort/`
   - 직원용 신청 화면: `.../apply.html`
   - 관리자용 화면: `.../admin.html`
-  - QR코드 안내 페이지: `.../qr-apply.html` (선택, apply.html 링크를 QR로 보여줌)
+  - QR코드 안내 페이지: `.../qr-apply.html` (사내 게시용. apply.html 링크 QR + 이용 안내 + 신청 방법)
 - 두 HTML 파일 모두 완전히 독립적인 정적 파일이며, 파일 상단 `<script>` 블록의 `CONFIG.API_URL` 값으로 백엔드와 통신함.
 - 실시간 push 없음 (Google Apps Script는 웹소켓 미지원). 대신:
   - 관리자 화면: 20초 주기 자동 폴링 + 수동 새로고침 버튼.
@@ -201,6 +201,18 @@ body는 JSON 문자열, `{ "action": "...", ...payload }` 형태.
   - **CSS 에 400/700 외의 `font-weight` 를 새로 쓰지 말 것.** 쓰려면 Google Fonts URL 의 `wght@400;700` 에 그 굵기를 함께 추가해야 하고,
     추가하지 않으면 가장 가까운 굵기로 대체 렌더링되어 의도한 두께가 나오지 않는다.
   - 더 줄이고 싶다면: `Gowun Dodum`(제목 전용, 한 패밀리 통째)을 빼고 제목도 `Gothic A1 700` 으로 처리하면 폰트 로드가 한 번 더 크게 준다. 다만 디자인이 달라진다.
+
+## 5.3 QR 안내 페이지 (`qr-apply.html`)
+사내 게시·인쇄용 한 장짜리 안내문. 신청 화면 QR, 주소 텍스트, 이용 안내(접수 기간·요일·지점·룸타입·숙박·인원),
+신청 방법 4단계, 내 신청 조회/취소 안내로 구성된다.
+
+- **QR 은 인라인 SVG 로 박아 넣었다.** 외부 QR 생성 CDN이나 이미지 파일에 의존하지 않으므로 오프라인·인쇄에서도
+  깨지지 않고, 자바스크립트가 전혀 없다. 외부 요청은 Google Fonts 뿐이다.
+- `@media print` 로 A4 한 장에 맞춘다(여백 14mm, 배경 제거).
+- **주소가 바뀌면 QR 도 다시 만들어야 한다.** 페이지의 링크 텍스트만 고치면 QR 은 옛 주소를 가리킨 채 남는다.
+  재생성: `npm i qrcode` 후 `QRCode.toString(url, {type:'svg', errorCorrectionLevel:'M', margin:0})` 결과를
+  `.qr-frame` 안의 `<svg>` 와 통째로 교체하고, `.url` 의 href·텍스트도 같이 바꾼다.
+  바꾼 뒤에는 실제로 렌더링해 디코딩되는지 확인할 것(브라우저 카메라로 찍어보는 것으로 충분).
 
 ## 6.1 일관성 점검 스크립트
 규칙 상수가 `Code.gs` 와 `apply.html`/`admin.html` 에 중복으로 들어 있어 한쪽만 고치면 조용히 어긋난다.

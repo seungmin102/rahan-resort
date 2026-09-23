@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>라한호텔 휴양시설 신청 안내</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Gothic+A1:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #FFF8F3;
+    --panel: #FFFFFF;
+    --ink: #262421;
+    --ink-soft: #78716C;
+    --line: #F0E4DA;
+    --gold: #F2631A;
+    --gold-deep: #D94E0C;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: 'Gothic A1', sans-serif; font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+  }
+  .sheet{ max-width: 620px; margin: 0 auto; padding: 44px 24px 56px; }
+
+  .eyebrow{ font-family: 'Gowun Dodum', sans-serif; font-size: 13px; color: var(--gold); font-weight: 700; text-align: center; margin-bottom: 10px; }
+  h1{ font-family: 'Gowun Dodum', sans-serif; font-weight: 700; font-size: 32px; margin: 0 0 12px; text-align: center; letter-spacing: -0.01em; }
+  .lead{ color: var(--ink-soft); font-size: 15px; text-align: center; margin: 0 0 32px; line-height: 1.6; }
+
+  .card{ background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 32px 28px; }
+
+  .qr-block{ text-align: center; }
+  .qr-frame{
+    display: inline-block; background: #fff; padding: 18px;
+    border: 1px solid var(--line); border-radius: 14px;
+  }
+  .qr-frame svg{ display: block; width: 240px; height: 240px; }
+  .scan{ font-family: 'Gowun Dodum', sans-serif; font-size: 17px; font-weight: 700; margin: 20px 0 6px; }
+  .scan-sub{ color: var(--ink-soft); font-size: 13.5px; margin: 0 0 18px; }
+
+  .url{
+    display: block; word-break: break-all; text-align: center;
+    font-size: 13px; color: var(--gold-deep); text-decoration: none;
+    background: var(--bg); border: 1px dashed var(--line);
+    border-radius: 9px; padding: 11px 14px; line-height: 1.5;
+  }
+  .url:hover{ text-decoration: underline; }
+
+  .divider{ height: 1px; background: var(--line); margin: 30px 0; }
+
+  h2{ font-family: 'Gowun Dodum', sans-serif; font-size: 17px; font-weight: 700; margin: 0 0 16px; }
+
+  dl{ margin: 0; display: grid; grid-template-columns: 92px 1fr; row-gap: 12px; column-gap: 14px; font-size: 14px; }
+  dt{ color: var(--ink-soft); }
+  dd{ margin: 0; line-height: 1.55; }
+  .highlight{ color: var(--gold-deep); font-weight: 700; }
+
+  ol{ margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.75; }
+  ol li{ margin-bottom: 6px; }
+  ol li:last-child{ margin-bottom: 0; }
+
+  .note{
+    margin-top: 26px; background: var(--bg); border: 1px solid var(--line);
+    border-radius: 11px; padding: 15px 17px; font-size: 13px;
+    color: var(--ink-soft); line-height: 1.65;
+  }
+  .note b{ color: var(--ink); font-weight: 700; }
+
+  footer{ text-align: center; color: var(--ink-soft); font-size: 12.5px; margin-top: 28px; }
+
+  @media (max-width: 480px){
+    .sheet{ padding: 32px 16px 44px; }
+    h1{ font-size: 26px; }
+    .card{ padding: 26px 20px; }
+    .qr-frame svg{ width: 200px; height: 200px; }
+    dl{ grid-template-columns: 78px 1fr; font-size: 13.5px; }
+  }
+
+  /* 사내 게시용 인쇄: A4 한 장에 들어가고 잉크를 덜 쓰도록 */
+  @media print{
+    @page{ size: A4; margin: 14mm; }
+    body{ background: #fff; }
+    .sheet{ max-width: none; padding: 0; }
+    .card{ border-color: #DDD; }
+    .url{ background: #fff; }
+    .note{ background: #fff; }
+    .qr-frame{ border-color: #DDD; }
+    .qr-frame svg{ width: 200px; height: 200px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <div class="eyebrow">휴가 사용 활성화 이벤트</div>
+  <h1>라한호텔 휴양시설 신청</h1>
+  <p class="lead">아래 QR 코드를 휴대폰 카메라로 찍으면<br>신청 화면으로 바로 연결됩니다.</p>
+
+  <div class="card">
+    <div class="qr-block">
+      <div class="qr-frame"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 33" shape-rendering="crispEdges" role="img" aria-label="신청 화면 QR 코드"><path fill="#ffffff" d="M0 0h33v33H0z"/><path stroke="#000000" d="M0 0.5h7m2 0h1m1 0h2m4 0h5m1 0h1m2 0h7M0 1.5h1m5 0h1m2 0h1m1 0h2m2 0h2m3 0h2m4 0h1m5 0h1M0 2.5h1m1 0h3m1 0h1m1 0h1m2 0h1m2 0h1m1 0h1m1 0h4m1 0h1m2 0h1m1 0h3m1 0h1M0 3.5h1m1 0h3m1 0h1m1 0h2m1 0h1m6 0h1m3 0h1m3 0h1m1 0h3m1 0h1M0 4.5h1m1 0h3m1 0h1m1 0h3m2 0h8m1 0h2m2 0h1m1 0h3m1 0h1M0 5.5h1m5 0h1m1 0h3m1 0h3m3 0h1m1 0h3m3 0h1m5 0h1M0 6.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M8 7.5h2m1 0h2m1 0h1m1 0h1m3 0h3m1 0h1M0 8.5h1m1 0h5m2 0h1m1 0h4m2 0h1m1 0h1m2 0h1m1 0h1m1 0h5M0 9.5h4m1 0h1m3 0h1m1 0h1m1 0h2m1 0h2m1 0h3m1 0h1m2 0h2m1 0h2m1 0h1M0 10.5h3m2 0h2m1 0h3m1 0h6m3 0h1m2 0h1m3 0h1m1 0h2M0 11.5h2m2 0h2m1 0h1m2 0h1m1 0h2m1 0h1m1 0h5m1 0h1m1 0h2m1 0h3M0 12.5h3m3 0h7m1 0h1m1 0h1m2 0h1m2 0h4m2 0h2m2 0h1M4 13.5h2m9 0h1m2 0h3m2 0h1m2 0h1m3 0h3M0 14.5h1m1 0h1m1 0h1m1 0h1m1 0h2m1 0h6m4 0h1m3 0h2m2 0h3M0 15.5h1m2 0h1m4 0h2m2 0h1m2 0h1m2 0h1m1 0h4m1 0h2m2 0h2M0 16.5h1m3 0h1m1 0h1m1 0h1m2 0h2m1 0h2m1 0h1m4 0h4m1 0h2m3 0h1M5 17.5h1m7 0h2m1 0h1m1 0h2m3 0h1m1 0h3m1 0h2m1 0h1M2 18.5h1m1 0h1m1 0h2m3 0h1m1 0h3m2 0h1m2 0h2m2 0h4m1 0h2M0 19.5h1m1 0h2m3 0h1m2 0h2m1 0h2m1 0h1m2 0h1m1 0h1m3 0h7M1 20.5h1m1 0h9m6 0h1m1 0h1m1 0h1m1 0h2m1 0h3M0 21.5h1m3 0h1m4 0h9m1 0h2m1 0h5m2 0h1m2 0h1M0 22.5h1m3 0h1m1 0h2m4 0h1m1 0h1m3 0h1m3 0h1m1 0h1m2 0h2m2 0h1M0 23.5h1m1 0h4m2 0h1m1 0h2m4 0h1m1 0h1m2 0h1m3 0h3m2 0h2M0 24.5h1m1 0h2m2 0h8m3 0h1m1 0h2m3 0h5m2 0h1M8 25.5h2m1 0h2m1 0h1m2 0h1m1 0h1m2 0h3m3 0h1m1 0h1m1 0h1M0 26.5h7m2 0h1m1 0h1m1 0h3m1 0h1m3 0h1m1 0h2m1 0h1m1 0h1m1 0h2M0 27.5h1m5 0h1m1 0h1m2 0h4m2 0h2m2 0h4m3 0h3m1 0h1M0 28.5h1m1 0h3m1 0h1m1 0h2m2 0h5m7 0h6M0 29.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h2m1 0h1m2 0h4m1 0h3m2 0h2m1 0h2M0 30.5h1m1 0h3m1 0h1m1 0h2m1 0h1m1 0h4m4 0h1m1 0h2m1 0h2m1 0h2M0 31.5h1m5 0h1m4 0h3m1 0h1m3 0h5m4 0h3M0 32.5h7m1 0h1m1 0h1m1 0h1m2 0h1m1 0h1m1 0h2m2 0h2m1 0h2m1 0h1m1 0h1"/></svg></div>
+      <p class="scan">휴대폰 카메라로 QR 코드를 비춰 주세요</p>
+      <p class="scan-sub">별도 앱 없이 카메라만 켜면 됩니다. 사내 로그인도 필요 없습니다.</p>
+      <a class="url" href="https://seungmin102.github.io/rahan-resort/apply.html">https://seungmin102.github.io/rahan-resort/apply.html</a>
+    </div>
+
+    <div class="divider"></div>
+
+    <h2>이용 안내</h2>
+    <dl>
+      <dt>접수 기간</dt><dd><span class="highlight">2026년 10월 1일 ~ 12월 31일</span></dd>
+      <dt>이용 요일</dt><dd>일요일 ~ 목요일 <span style="color:var(--ink-soft);">(금·토요일 및 공휴일 이용 불가)</span></dd>
+      <dt>이용 지점</dt><dd>경주 · 전주 · 포항 · 목포 · 울산</dd>
+      <dt>룸 타입</dt><dd>디럭스 더블 · 디럭스 트윈</dd>
+      <dt>숙박</dt><dd>1박 2일 · 2박 3일</dd>
+      <dt>인원</dt><dd>2인 기준</dd>
+    </dl>
+
+    <div class="divider"></div>
+
+    <h2>신청 방법</h2>
+    <ol>
+      <li>QR 코드를 찍어 신청 화면에 들어갑니다.</li>
+      <li>이름, 사번, 지점, 룸 타입, 이용일, 박수를 입력하고 제출합니다.</li>
+      <li>제출하면 <b>4자리 신청번호</b>가 나옵니다. 기억해 두세요.</li>
+      <li>담당자 확인 후 승인되며, 예약번호는 같은 화면에서 확인할 수 있습니다.</li>
+    </ol>
+
+    <div class="note">
+      <b>신청 내역 확인 · 취소</b><br>
+      같은 주소에서 <b>&ldquo;내 신청 조회&rdquo;</b> 탭을 누르고 이름과 사번을 입력하면
+      진행 상태와 예약번호를 볼 수 있고, 신청을 취소할 수도 있습니다.
+      이미 승인된 신청을 취소하실 때는 담당자에게도 알려 주세요.
+    </div>
+  </div>
+
+  <footer>문의는 복지 담당자에게 연락해 주세요.</footer>
+</div>
+
+</body>
+</html>
