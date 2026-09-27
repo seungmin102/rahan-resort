@@ -28,7 +28,8 @@
 
   .hidden{ display: none !important; }
   .banner{ max-width: 1100px; margin: 0 auto 18px; padding: 14px 16px; border-radius: 10px; font-size: 13.5px; text-align: center; }
-  .banner.error{ background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
+  .banner.error{ background: var(--red-bg); color: var(--red); border: 1px solid var(--red); text-align: left; line-height: 1.6; }
+  .banner.error code{ background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
   .banner.warn{ background: #FFF4E5; color: #92400E; border: 1px solid #F59E0B; text-align: left; line-height: 1.6; }
   .banner.warn b{ font-weight: 700; }
   .banner.warn code{ background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
@@ -159,7 +160,9 @@
   <div id="staleServerBanner" class="banner warn hidden"></div>
 
   <div id="apiErrorBanner" class="banner error hidden">
-    지금은 서버에 연결할 수 없습니다. 화면의 내용은 마지막으로 받아온 것이라 실제와 다를 수 있습니다. 계속 이러면 Apps Script 일일 실행 한도를 넘었을 수 있습니다.
+    <b>지금은 서버에 연결할 수 없습니다.</b> 화면의 내용은 마지막으로 받아온 것이라 실제와 다를 수 있습니다.<br>
+    회사 PC에서만 이렇다면 사내망이나 보안 프로그램이 <code>script.google.com</code> 을 막고 있을 수 있습니다.
+    어디서나 이렇다면 Apps Script 일일 실행 한도를 넘었을 수 있습니다(다음 날 자동으로 풀립니다).
   </div>
 
   <div class="stats">
@@ -317,7 +320,10 @@ async function checkServerVersion(){
     const have = (info && info.actions) || [];
     missing = Object.keys(REQUIRED_ACTIONS).filter(a => have.indexOf(a) === -1);
   }catch(err){
-    // version 자체가 없으면 확실히 오래된 배포다
+    /* 서버가 "그런 기능 모른다"고 답한 경우만 오래된 배포다.
+       아예 연결이 안 되는 경우(사내망 차단, 네트워크 오류)에도 이 배너를 띄우면
+       멀쩡한 배포를 두고 재배포만 반복하게 된다. 연결 문제는 빨간 배너가 알린다. */
+    if(err.message !== 'unknown_action') return;
     missing = Object.keys(REQUIRED_ACTIONS);
   }
   if(missing.length === 0) return;

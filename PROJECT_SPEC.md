@@ -34,11 +34,17 @@ Claude 아티팩트(claude.ai) 기반이 아니라, **외부에서 로그인 없
   - 배포 URL 예시: `https://script.google.com/macros/s/{DEPLOYMENT_ID}/exec`
   - **주의**: "새 배포"가 아니라 "배포 관리 → 기존 배포 편집"으로 재배포해야 URL이 유지됨.
 
+**사내망 차단 주의**: 회사 PC 에서 관리자/신청 화면이 열리는데 데이터만 안 나온다면, 사내 방화벽이나 보안 프로그램이
+`script.google.com` / `script.googleusercontent.com` 을 막고 있을 가능성이 높다. GitHub Pages(`*.github.io`)는
+허용돼 있어 화면 자체는 뜨기 때문에 구분이 어렵다. 확인은 브라우저에서 `<웹앱URL>?action=version` 을 직접 열어보면 된다
+(열리지 않으면 차단). 해결하려면 전산 담당자에게 위 두 도메인 허용을 요청해야 한다.
+
 **재배포 누락 자동 감지**: 관리자 화면은 열릴 때 `action=version` 을 호출해, 화면이 필요로 하는 액션
 (`adminData`, `updateStatusBulk`, `deleteApplication`, `deleteApplicationsBulk`, `cancelApplication`)이
 배포본에 있는지 확인한다. 없으면 **어떤 기능이 안 되는지와 재배포 방법을 노란 배너로 띄운다.**
 Code.gs 를 고쳐도 재배포하지 않으면 화면은 멀쩡해 보이면서 특정 버튼만 `unknown_action` 으로 조용히
-실패하기 때문이다. **기능을 추가할 때는 `SCRIPT_VERSION` 과 `SUPPORTED_ACTIONS`, 그리고 admin.html 의
+실패하기 때문이다. **단, 서버가 `unknown_action` 으로 응답한 경우에만 이 배너를 띄운다.** 연결 자체가 안 되는
+경우(사내망 차단 등)까지 재배포하라고 안내하면, 멀쩡한 배포를 두고 재배포만 반복하게 된다. **기능을 추가할 때는 `SCRIPT_VERSION` 과 `SUPPORTED_ACTIONS`, 그리고 admin.html 의
 `REQUIRED_ACTIONS` 를 함께 갱신해야 한다.**
 
 #### Code.gs 수정 후 재배포 절차 (매번 이대로)
