@@ -67,7 +67,8 @@
   .block-form input{ font-family: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); }
   .block-form button{ background: var(--red); color: #fff; border: none; padding: 10px 16px; border-radius: 7px; font-family: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; }
   .block-form button:hover{ filter: brightness(0.92); }
-  .block-form .helper{ font-size: 12px; color: var(--ink-soft); width: 100%; }
+  .block-form .helper{ font-size: 12px; color: var(--ink-soft); width: 100%; line-height: 1.6; }
+  .block-form .helper code{ background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; }
   .blocked-list{ display: flex; flex-wrap: wrap; gap: 8px; }
   .blocked-chip{ display: flex; align-items: center; gap: 8px; background: var(--red); color: #fff; font-size: 12.5px; font-weight: 400; padding: 6px 8px 6px 12px; border-radius: 999px; }
   .blocked-chip button{ background: none; border: none; color: #fff; cursor: pointer; font-size: 14px; line-height: 1; padding: 2px; display: flex; }
@@ -175,7 +176,7 @@
 
   <div class="block-card">
     <div class="block-head" id="blockHead">
-      <div class="block-title">마감일 관리 <span class="badge" id="blockedCountBadge">0건 마감</span></div>
+      <div class="block-title">전 지점 마감일 관리 <span class="badge" id="blockedCountBadge">0건 마감</span></div>
       <button class="block-toggle" id="blockToggleBtn">
         <span id="blockToggleText">펼치기</span>
         <span id="blockChevron">▾</span>
@@ -185,7 +186,8 @@
       <div class="block-form">
         <div class="fg"><label>마감할 날짜</label><input type="date" id="blockDateInput" min="2026-10-01" max="2026-12-31"></div>
         <button type="button" id="addBlockBtn">마감 처리</button>
-        <div class="helper">해당 날짜는 신청 화면 캘린더에서 자동으로 선택할 수 없게 됩니다. (일~목요일만 마감 가능)</div>
+        <div class="helper">해당 날짜는 <b>5개 지점 전부</b> 신청 화면 캘린더에서 선택할 수 없게 됩니다. (일~목요일만 마감 가능)<br>
+          특정 지점만 마감하려면 <code>apply.html</code> 상단의 <code>BRANCH_BLOCKED</code> 목록을 수정해야 합니다.</div>
       </div>
       <div class="blocked-list" id="blockedList"></div>
     </div>
