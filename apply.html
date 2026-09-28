@@ -736,7 +736,7 @@ function renderLookupResults(items){
         <dt>신청번호</dt><dd>${escapeHtml(item.appNo || '-')}</dd>
         <dt>룸 타입</dt><dd>${escapeHtml(item.roomtype || '-')}</dd>
         <dt>이용일</dt><dd>${item.date} (${wd}요일)</dd>
-        <dt>박수</dt><dd>2명 · ${escapeHtml(item.nights)}</dd>
+        <dt>박수</dt><dd>${escapeHtml(item.nights)}</dd>
         ${item.reservationNo ? `<dt>예약번호</dt><dd>${escapeHtml(item.reservationNo)}</dd>` : ''}
       </dl>
       ${item.status === '승인'
