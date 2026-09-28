@@ -253,7 +253,7 @@
   <div class="notice">
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.3"/><path d="M8 7.2V11.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="4.9" r="0.9" fill="currentColor"/></svg>
     <span>신청 시 입력한 <strong>이름과 사번</strong>을 입력하면 지금까지의 신청 현황을 확인할 수 있습니다.<br>
-      예약이 확정되면 <strong>사내 메일로 한 번 더 안내</strong>드립니다.</span>
+      예약이 확정되면 <strong>하이웍스 메일로 한 번 더 안내</strong>드립니다.</span>
   </div>
 
   <form id="lookupForm" novalidate>
@@ -740,7 +740,7 @@ function renderLookupResults(items){
         ${item.reservationNo ? `<dt>예약번호</dt><dd>${escapeHtml(item.reservationNo)}</dd>` : ''}
       </dl>
       ${item.status === '승인'
-        ? '<div class="lc-note">예약 확정 안내는 사내 메일로 별도 발송됩니다.</div>' : ''}
+        ? '<div class="lc-note">예약 확정 안내는 하이웍스 메일로 별도 발송됩니다.</div>' : ''}
       ${cancellable
         ? `<button type="button" class="cancel-btn" data-id="${escapeHtml(item.id)}">신청 취소하기</button>`
         : (item.status === '취소' ? '<div class="lc-note">취소된 신청입니다.</div>' : '')}
