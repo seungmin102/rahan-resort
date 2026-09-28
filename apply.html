@@ -94,6 +94,9 @@
   .lookup-card dt{ color: var(--ink-soft); }
   .lookup-card dd{ margin: 0; }
   .lookup-empty{ text-align: center; padding: 50px 20px; color: var(--ink-soft); font-size: 13.5px; }
+  /* 조회 버튼과 결과 목록 사이 간격. 조회 전에는 비어 있으므로 여백도 주지 않는다. */
+  #lookupResults{ margin-top: 28px; }
+  #lookupResults:empty{ margin-top: 0; }
 
   .pill{ display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px; border-radius: 999px; font-size: 12px; font-weight: 700; border: none; font-family: inherit; }
   .pill.대기{ background: var(--amber); color: #fff; }
