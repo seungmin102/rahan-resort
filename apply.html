@@ -347,6 +347,23 @@ const BRANCH_BLOCKED = {
   '울산': [],
 };
 
+/* ═══════════════════════════════════════════════════════════════
+   룸 타입까지 지정해 막을 때  ←  "경주 디럭스 트윈만 만실" 같은 경우
+   ═══════════════════════════════════════════════════════════════
+   예) 경주 디럭스 트윈만 11월 4일 마감:
+         '경주': { '디럭스 더블': [], '디럭스 트윈': ['2026-11-04'] },
+
+   · 위 BRANCH_BLOCKED 는 그 지점의 두 룸 타입을 모두 막습니다.
+     여기는 한쪽 룸 타입만 막을 때 씁니다.
+   ═══════════════════════════════════════════════════════════════ */
+const ROOM_BLOCKED = {
+  '경주': { '디럭스 더블': [], '디럭스 트윈': [] },
+  '전주': { '디럭스 더블': [], '디럭스 트윈': [] },
+  '포항': { '디럭스 더블': [], '디럭스 트윈': [] },
+  '목포': { '디럭스 더블': [], '디럭스 트윈': [] },
+  '울산': { '디럭스 더블': [], '디럭스 트윈': [] },
+};
+
 const HOLIDAYS_2026 = new Set([
   '2026-01-01','2026-02-16','2026-02-17','2026-02-18',
   '2026-03-01','2026-03-02','2026-05-01','2026-05-05',
@@ -384,8 +401,17 @@ function currentBranch(){
   const el = document.getElementById('branch');
   return el ? el.value : '';
 }
+function currentRoomtype(){
+  const el = document.getElementById('roomtype');
+  return el ? el.value : '';
+}
 function isBranchBlocked(dateStr){
   const list = BRANCH_BLOCKED[currentBranch()];
+  return !!list && list.indexOf(dateStr) !== -1;
+}
+function isRoomBlocked(dateStr){
+  const byBranch = ROOM_BLOCKED[currentBranch()];
+  const list = byBranch && byBranch[currentRoomtype()];
   return !!list && list.indexOf(dateStr) !== -1;
 }
 function isNightBlocked(dateStr){
@@ -394,6 +420,7 @@ function isNightBlocked(dateStr){
   if(isHoliday(dateStr)) return true;
   if(blockedDates.has(dateStr)) return true;   // 전 지점 마감 (관리자 화면)
   if(isBranchBlocked(dateStr)) return true;    // 선택한 지점만 마감
+  if(isRoomBlocked(dateStr)) return true;      // 선택한 지점+룸 타입만 마감
   return false;
 }
 function isStayValid(dateStr, nightsValue){
@@ -402,7 +429,7 @@ function isStayValid(dateStr, nightsValue){
 }
 function isSelectableDate(dateStr){
   return isWeekday(dateStr) && !isHoliday(dateStr) && !blockedDates.has(dateStr)
-      && !isBranchBlocked(dateStr) && inAllowedRange(dateStr);
+      && !isBranchBlocked(dateStr) && !isRoomBlocked(dateStr) && inAllowedRange(dateStr);
 }
 
 function statusLabel(status){
@@ -480,21 +507,28 @@ function setError(fieldId){ document.getElementById(fieldId).classList.add('inva
 document.getElementById('empid').addEventListener('input', (e)=>{
   e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 6);
 });
-document.getElementById('branch').addEventListener('change', ()=>{
-  clearError('f-branch');
-  // 지점마다 막힌 날짜가 다르므로 달력을 다시 그린다.
+/* 지점·룸 타입에 따라 막히는 날짜가 달라지므로, 둘 중 하나가 바뀌면
+   달력을 다시 그리고 이미 고른 날짜가 아직 유효한지 다시 본다. */
+function onAvailabilityInputChanged(){
   renderCalendar();
   if(selectedDateStr && !isSelectableDate(selectedDateStr)){
     const was = selectedDateStr;
     selectedDateStr = '';
     dateDisplay.value = '';
     document.getElementById('dateError').textContent =
-      `${was} 은(는) 선택하신 지점에서 마감되었습니다. 다른 날짜를 선택해 주세요.`;
+      `${was} 은(는) 선택하신 지점·룸 타입에서 마감되었습니다. 다른 날짜를 선택해 주세요.`;
     setError('f-date');
   }
   refreshNightsValidity();
+}
+document.getElementById('branch').addEventListener('change', ()=>{
+  clearError('f-branch');
+  onAvailabilityInputChanged();
 });
-document.getElementById('roomtype').addEventListener('change', ()=> clearError('f-roomtype'));
+document.getElementById('roomtype').addEventListener('change', ()=>{
+  clearError('f-roomtype');
+  onAvailabilityInputChanged();
+});
 
 function renderCalendar(){
   calTitle.textContent = `${calViewYear}년 ${calViewMonth+1}월`;
@@ -564,6 +598,11 @@ dateDisplay.addEventListener('click', ()=>{
   if(!currentBranch()){
     setError('f-branch');
     document.getElementById('branch').focus();
+    return;
+  }
+  if(!currentRoomtype()){
+    setError('f-roomtype');
+    document.getElementById('roomtype').focus();
     return;
   }
   renderCalendar();

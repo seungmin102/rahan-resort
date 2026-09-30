@@ -187,7 +187,8 @@
         <div class="fg"><label>마감할 날짜</label><input type="date" id="blockDateInput" min="2026-10-01" max="2026-12-31"></div>
         <button type="button" id="addBlockBtn">마감 처리</button>
         <div class="helper">해당 날짜는 <b>5개 지점 전부</b> 신청 화면 캘린더에서 선택할 수 없게 됩니다. (일~목요일만 마감 가능)<br>
-          특정 지점만 마감하려면 <code>apply.html</code> 상단의 <code>BRANCH_BLOCKED</code> 목록을 수정해야 합니다.</div>
+          특정 지점만(또는 특정 지점의 한 룸 타입만) 마감하려면 <code>apply.html</code> 상단의
+          <code>BRANCH_BLOCKED</code> / <code>ROOM_BLOCKED</code> 목록을 수정해야 합니다.</div>
       </div>
       <div class="blocked-list" id="blockedList"></div>
     </div>
