@@ -5,6 +5,7 @@
   python3 tools/block-date.py 경주 2026-11-02 "디럭스 트윈"       # 경주 트윈만 마감
   python3 tools/block-date.py --unblock 경주 2026-11-02          # 해제
   python3 tools/block-date.py --unblock 경주 2026-11-02 "디럭스 트윈"
+  python3 tools/block-date.py --range 2026-10-01 2026-10-16 경주   # 기간 일괄
   python3 tools/block-date.py --list                            # 현황
 
 날짜 형식, 접수 기간(2026-10-01~12-31), 요일(일~목)을 검사하고
@@ -16,6 +17,11 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 APPLY = os.path.join(ROOT, 'apply.html')
 WD = ['월','화','수','목','금','토','일']   # datetime.weekday()
 ROOMS = ['디럭스 더블', '디럭스 트윈']
+
+# 공휴일은 Code.gs 것을 그대로 읽어 쓴다 (목록을 또 복사해 두면 어긋난다)
+_gs = io.open(os.path.join(ROOT, 'Code.gs'), encoding='utf-8').read()
+HOLIDAYS = set(re.findall(r'\d{4}-\d{2}-\d{2}',
+               re.search(r'const HOLIDAYS = \{(.*?)\};', _gs, re.S).group(1)))
 
 def dates_in(text):
     return re.findall(r"'([\d-]+)'", text)
@@ -66,7 +72,22 @@ def check(branch_name, date, room_name, branch):
     if d.weekday() in (4, 5):
         sys.exit('%s 는 %s요일이라 이미 신청이 불가능합니다. 날짜를 다시 확인해 주세요.'
                  % (date, WD[d.weekday()]))
+    if date in HOLIDAYS:
+        sys.exit('%s 는 공휴일이라 이미 신청이 불가능합니다. 날짜를 다시 확인해 주세요.' % date)
     return d
+
+def bookable_days(start, end):
+    """기간 안에서 실제로 신청 가능한 날(일~목, 공휴일 아님)만 돌려준다."""
+    d0 = datetime.date(*map(int, start.split('-')))
+    d1 = datetime.date(*map(int, end.split('-')))
+    if d1 < d0: sys.exit('시작일이 종료일보다 뒤입니다.')
+    out, d = [], d0
+    while d <= d1:
+        iso = d.isoformat()
+        if d.weekday() not in (4, 5) and iso not in HOLIDAYS and '2026-10-01' <= iso <= '2026-12-31':
+            out.append(iso)
+        d += datetime.timedelta(days=1)
+    return out
 
 def fmt(x): return '%s(%s)' % (x, WD[datetime.date(*map(int, x.split('-'))).weekday()])
 
@@ -90,6 +111,31 @@ def main():
 
     unblock = '--unblock' in args
     if unblock: args.remove('--unblock')
+
+    # --range 시작일 종료일 : 기간 안에서 신청 가능한 날을 한꺼번에 처리
+    if '--range' in args:
+        i = args.index('--range')
+        start, end = args[i+1], args[i+2]
+        rest = args[:i] + args[i+3:]
+        if len(rest) not in (1, 2): sys.exit(__doc__)
+        branch_name = rest[0]
+        room_name = rest[1] if len(rest) == 2 else None
+        days = bookable_days(start, end)
+        if not days: sys.exit('%s ~ %s 사이에 신청 가능한 날이 없습니다.' % (start, end))
+        print('%s ~ %s 중 신청 가능한 날 %d일을 처리합니다.' % (start, end, len(days)))
+        done = 0
+        for iso in days:
+            check(branch_name, iso, room_name, branch)
+            target = room[branch_name][room_name] if room_name else branch[branch_name]
+            if unblock:
+                if iso in target: target.remove(iso); done += 1
+            else:
+                if iso not in target: target.append(iso); done += 1
+        save(s, bm, rm, branch, room)
+        print('%s %d일\n' % ('해제' if unblock else '마감', done))
+        s2, bm2, rm2, b2, r2 = load(); show(b2, r2)
+        return
+
     if len(args) not in (2, 3): sys.exit(__doc__)
     branch_name, date = args[0], args[1]
     room_name = args[2] if len(args) == 3 else None
