@@ -6,6 +6,7 @@
   python3 tools/block-date.py --unblock 경주 2026-11-02          # 해제
   python3 tools/block-date.py --unblock 경주 2026-11-02 "디럭스 트윈"
   python3 tools/block-date.py --range 2026-10-01 2026-10-16 경주   # 기간 일괄
+  python3 tools/block-date.py --dates 2026-11-04,2026-11-12 경주   # 날짜 여러 개
   python3 tools/block-date.py --list                            # 현황
 
 날짜 형식, 접수 기간(2026-10-01~12-31), 요일(일~목)을 검사하고
@@ -76,6 +77,25 @@ def check(branch_name, date, room_name, branch):
         sys.exit('%s 는 공휴일이라 이미 신청이 불가능합니다. 날짜를 다시 확인해 주세요.' % date)
     return d
 
+def all_days(start, end):
+    d0 = datetime.date(*map(int, start.split('-')))
+    d1 = datetime.date(*map(int, end.split('-')))
+    if d1 < d0: sys.exit('시작일이 종료일보다 뒤입니다.')
+    out, d = [], d0
+    while d <= d1:
+        out.append(d.isoformat()); d += datetime.timedelta(days=1)
+    return out
+
+def unbookable_reason(iso):
+    """막을 필요가 없는 날이면 그 이유를, 정상이면 None 을 돌려준다."""
+    if not re.match(r'^\d{4}-\d{2}-\d{2}$', iso): return '날짜 형식 오류'
+    try: d = datetime.date(*map(int, iso.split('-')))
+    except ValueError: return '달력에 없는 날짜'
+    if not ('2026-10-01' <= iso <= '2026-12-31'): return '접수 기간 밖'
+    if d.weekday() in (4, 5): return '%s요일이라 이미 신청 불가' % WD[d.weekday()]
+    if iso in HOLIDAYS: return '공휴일이라 이미 신청 불가'
+    return None
+
 def bookable_days(start, end):
     """기간 안에서 실제로 신청 가능한 날(일~목, 공휴일 아님)만 돌려준다."""
     d0 = datetime.date(*map(int, start.split('-')))
@@ -112,27 +132,52 @@ def main():
     unblock = '--unblock' in args
     if unblock: args.remove('--unblock')
 
-    # --range 시작일 종료일 : 기간 안에서 신청 가능한 날을 한꺼번에 처리
+    # 여러 날짜를 한 번에: --range 시작 종료  /  --dates 2026-11-04,2026-11-12,...
+    # 막을 수 없는 날은 건너뛰고 왜 건너뛰었는지 전부 보고한다.
+    wanted = None
     if '--range' in args:
         i = args.index('--range')
-        start, end = args[i+1], args[i+2]
-        rest = args[:i] + args[i+3:]
-        if len(rest) not in (1, 2): sys.exit(__doc__)
-        branch_name = rest[0]
-        room_name = rest[1] if len(rest) == 2 else None
-        days = bookable_days(start, end)
-        if not days: sys.exit('%s ~ %s 사이에 신청 가능한 날이 없습니다.' % (start, end))
-        print('%s ~ %s 중 신청 가능한 날 %d일을 처리합니다.' % (start, end, len(days)))
-        done = 0
-        for iso in days:
-            check(branch_name, iso, room_name, branch)
-            target = room[branch_name][room_name] if room_name else branch[branch_name]
+        wanted = all_days(args[i+1], args[i+2])
+        args = args[:i] + args[i+3:]
+    elif '--dates' in args:
+        i = args.index('--dates')
+        wanted = [x.strip() for x in args[i+1].split(',') if x.strip()]
+        args = args[:i] + args[i+2:]
+
+    if wanted is not None:
+        if len(args) not in (1, 2): sys.exit(__doc__)
+        branch_name = args[0]
+        room_name = args[1] if len(args) == 2 else None
+        if branch_name not in branch:
+            sys.exit('지점 이름이 올바르지 않습니다. 가능: %s' % ', '.join(branch))
+        if room_name is not None and room_name not in ROOMS:
+            sys.exit('룸 타입이 올바르지 않습니다. 가능: %s' % ', '.join(ROOMS))
+
+        target = room[branch_name][room_name] if room_name else branch[branch_name]
+        label = '%s %s' % (branch_name, room_name) if room_name else '%s 전체' % branch_name
+        done, skipped = [], []
+        for iso in wanted:
+            why = unbookable_reason(iso)
+            if why:
+                skipped.append((iso, why)); continue
             if unblock:
-                if iso in target: target.remove(iso); done += 1
+                if iso in target: target.remove(iso); done.append(iso)
+                else: skipped.append((iso, '마감되어 있지 않음'))
             else:
-                if iso not in target: target.append(iso); done += 1
+                if iso in target:
+                    skipped.append((iso, '이미 마감'))
+                elif room_name and iso in branch[branch_name]:
+                    skipped.append((iso, '지점 전체가 이미 마감'))
+                else:
+                    target.append(iso); done.append(iso)
+
+        print('%s — %s %d일' % (label, '해제' if unblock else '마감', len(done)))
+        for x in done: print('   %s' % fmt(x))
+        if skipped:
+            print('건너뜀 %d일' % len(skipped))
+            for x, why in skipped: print('   %s  ← %s' % (fmt(x), why))
         save(s, bm, rm, branch, room)
-        print('%s %d일\n' % ('해제' if unblock else '마감', done))
+        print()
         s2, bm2, rm2, b2, r2 = load(); show(b2, r2)
         return
 
