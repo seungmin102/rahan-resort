@@ -1319,7 +1319,8 @@ async function applyImport(){
   clearTimeout(pollTimer);
   pollTimer = null;
 
-  const failed = [];
+  const failed = [];      // {change, kind} — 응답이 실패로 돌아온 건
+  let abortedWith = '';
   const say = (text)=> { progress.textContent = text; };
 
   try{
@@ -1331,46 +1332,39 @@ async function applyImport(){
         const result = await apiPost('updateStatusBulk', { ids: part.map(c => c.id), status });
         const missing = new Set(((result && result.notFound) || []).map(String));
         part.forEach(c => {
-          if(missing.has(String(c.id))) failed.push(`${c.appNo} (${c.name}) 상태`);
+          if(missing.has(String(c.id))) failed.push({ change: c, kind: '상태' });
           else { const item = allApplications.find(a => a.id === c.id); if(item) item.status = status; }
         });
       }
     }
 
-    // 2) 예약번호
+    /* 2) 예약번호 — 건별로 보낸다.
+       Apps Script 는 요청이 몰리면 간헐적으로 한 건씩 실패하므로 한 번은 다시 보낸다.
+       그래도 안 되면 기록만 해 두고 계속 보낸다(한 건 때문에 나머지를 멈추지 않는다). */
     for(let i = 0; i < withNo.length; i++){
       const c = withNo[i];
       say(`예약번호 ${i + 1}/${withNo.length}건 기재 중…`);
-      try{
-        await apiPost('updateReservation', { id: c.id, reservationNo: c.toReservation });
-        const item = allApplications.find(a => a.id === c.id);
-        if(item) item.reservationNo = c.toReservation;
-      }catch(err){
-        console.error(err);
-        failed.push(`${c.appNo} (${c.name}) 예약번호`);
+      let done = false;
+      for(let attempt = 0; attempt < 2 && !done; attempt++){
+        if(attempt) await new Promise(r => setTimeout(r, 2000));
+        try{
+          await apiPost('updateReservation', { id: c.id, reservationNo: c.toReservation });
+          const item = allApplications.find(a => a.id === c.id);
+          if(item) item.reservationNo = c.toReservation;
+          done = true;
+        }catch(err){
+          console.error(err);
+          if(attempt) failed.push({ change: c, kind: '예약번호' });
+        }
       }
     }
 
     lastDataSignature = null;
     renderAdminTable();
     renderStats();
-
-    if(failed.length){
-      importNoticeOk = false;
-      importNotice = `<b>${changes.length - failed.length}건 반영, ${failed.length}건 실패.</b><br>`
-        + `실패: ${escapeHtml(failed.join(', '))}<br>`
-        + `아래는 서버에서 다시 받아온 명단으로 계산한 <b>남은 건</b>입니다. 그대로 다시 눌러 주세요.`;
-      say(`${changes.length - failed.length}건 반영, ${failed.length}건 실패`);
-    } else {
-      importNoticeOk = true;
-      importNotice = `<b>${changes.length}건 모두 반영했습니다.</b>`;
-      say(`${changes.length}건 모두 반영했습니다.`);
-    }
   }catch(err){
     console.error(err);
-    importNoticeOk = false;
-    importNotice = `<b>반영 중 오류가 발생했습니다.</b><br>${escapeHtml(err && err.message ? err.message : String(err))}<br>`
-      + `아래는 서버에서 다시 받아온 명단으로 계산한 <b>남은 건</b>입니다.`;
+    abortedWith = err && err.message ? err.message : String(err);
     say('반영 중 오류가 발생했습니다.');
   }finally{
     importRunning = false;
@@ -1380,6 +1374,44 @@ async function applyImport(){
        이미 처리된 건을 또 쓰지 않아야 한다. */
     await loadAll();
     schedulePoll();
+
+    /* 실패로 돌아온 건이 실제로 안 들어간 건지 시트를 보고 판정한다.
+       Apps Script 는 처리를 끝내고도 응답이 끊기는 경우가 있어서, 화면에는
+       실패로 뜨지만 값은 멀쩡히 들어가 있는 일이 생긴다. 그걸 "실패"라고
+       알려주면 담당자가 멀쩡한 결과를 의심하며 다시 돌리게 된다. */
+    const stillMissing = failed.filter(f => {
+      const item = allApplications.find(a => a.id === f.change.id);
+      if(!item) return true;
+      return f.kind === '상태'
+        ? item.status !== f.change.toStatus
+        : String(item.reservationNo || '') !== f.change.toReservation;
+    });
+    const recovered = failed.length - stillMissing.length;
+    const applied = changes.length - stillMissing.length;
+    const label = f => `${f.change.appNo} (${f.change.name}) ${f.kind}`;
+    // 수십 건이 한꺼번에 실패하면 이름이 화면을 가득 메워 정작 안내 문구가 묻힌다
+    const labelList = list => list.length > 10
+      ? escapeHtml(list.slice(0, 10).map(label).join(', ')) + ` 외 ${list.length - 10}건`
+      : escapeHtml(list.map(label).join(', '));
+
+    if(abortedWith){
+      importNoticeOk = false;
+      importNotice = `<b>반영 중 오류가 발생했습니다.</b><br>${escapeHtml(abortedWith)}<br>`
+        + `${applied}건까지는 들어갔습니다. 아래는 서버에서 다시 받아온 명단으로 계산한 <b>남은 건</b>입니다.`;
+      say(`${applied}건 반영 후 중단`);
+    } else if(stillMissing.length){
+      importNoticeOk = false;
+      importNotice = `<b>${applied}건 반영, ${stillMissing.length}건은 아직 안 들어갔습니다.</b><br>`
+        + `${labelList(stillMissing)}<br>`
+        + `아래는 서버에서 다시 받아온 명단으로 계산한 <b>남은 건</b>입니다. 그대로 다시 눌러 주세요.`;
+      say(`${applied}건 반영, ${stillMissing.length}건 남음`);
+    } else {
+      importNoticeOk = true;
+      importNotice = `<b>${changes.length}건 모두 반영했습니다.</b>`
+        + (recovered ? `<br>그 중 ${recovered}건은 보내는 도중 응답이 끊겼지만, 시트를 다시 읽어 확인해 보니 정상적으로 들어가 있었습니다.` : '');
+      say(`${changes.length}건 모두 반영했습니다.`);
+    }
+
     if(importParsed){
       importPlan = planImport(importParsed, allApplications);
       renderImportReport(importPlan, importFileName, importSkippedSheets);
