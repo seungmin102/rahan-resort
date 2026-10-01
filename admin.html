@@ -1162,7 +1162,10 @@ function planImport(parsedRows, applications){
       return;
     }
 
-    const nextReservation = decided.status === '승인' ? decided.reservationNo : String(item.reservationNo || '');
+    /* 거절이면 예약번호는 지운다. 호텔이 한 번 준 번호를 취소하고 불가로 바꿔
+       보내는 경우가 있는데, 번호가 남아 있으면 직원 조회 화면에 "거절"과
+       예약번호가 나란히 떠서 예약이 살아 있는 것처럼 보인다. */
+    const nextReservation = decided.status === '승인' ? decided.reservationNo : '';
     const statusSame = item.status === decided.status;
     const resSame = String(item.reservationNo || '') === nextReservation;
     if(statusSame && resSame){ already++; return; }
@@ -1231,7 +1234,8 @@ function renderImportReport(plan, fileName, skippedSheets){
         <td>${escapeHtml(c.branch || '')}</td>
         <td>${escapeHtml(c.date || '')}</td>
         <td>${escapeHtml(c.fromStatus)} → <b>${escapeHtml(c.toStatus)}</b></td>
-        <td>${escapeHtml(c.toReservation || '-')}</td>
+        <td>${c.toReservation ? escapeHtml(c.toReservation)
+              : (c.fromReservation ? '<b>지움</b> (기존 ' + escapeHtml(c.fromReservation) + ')' : '-')}</td>
       </tr>`).join('')}</tbody></table></div>`;
     html += `<div class="import-actions">
       <button type="button" class="go" id="importApplyBtn">${plan.changes.length}건 반영하기</button>
