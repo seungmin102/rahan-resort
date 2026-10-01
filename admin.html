@@ -30,6 +30,8 @@
   .banner{ max-width: 1100px; margin: 0 auto 18px; padding: 14px 16px; border-radius: 10px; font-size: 13.5px; text-align: center; }
   .banner.error{ background: var(--red-bg); color: var(--red); border: 1px solid var(--red); text-align: left; line-height: 1.6; }
   .banner.error code{ background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+  /* 캐시 때문에 예전 화면을 보고 있는지 한눈에 알 수 있도록 파일 시각을 적어둔다 */
+  .build-stamp{ max-width: 1100px; margin: -8px auto 14px; text-align: right; font-size: 11.5px; color: var(--ink-soft); }
   .banner.info{ background: #EFF6FF; color: #1E40AF; border: 1px solid #93C5FD; }
   .banner.warn{ background: #FFF4E5; color: #92400E; border: 1px solid #F59E0B; text-align: left; line-height: 1.6; }
   .banner.warn b{ font-weight: 700; }
@@ -159,6 +161,8 @@
 </header>
 
 <div class="container">
+  <div class="build-stamp" id="buildStamp"></div>
+
   <div id="downloadHint" class="banner info hidden">
     파일이 보이지 않으면 브라우저 우측 상단의 <b>다운로드 아이콘</b>을 확인하거나 <b>Ctrl+J</b> 를 눌러 보세요.
   </div>
@@ -346,6 +350,16 @@ async function checkServerVersion(){
   banner.classList.remove('hidden');
 }
 checkServerVersion();
+
+/* 화면 버전 = 이 파일이 서버에서 마지막으로 바뀐 시각.
+   "고쳤는데 그대로예요" 가 캐시 때문인지 코드 때문인지 바로 가려내기 위한 것. */
+(function(){
+  const el = document.getElementById('buildStamp');
+  const d = new Date(document.lastModified);
+  const p2 = n => String(n).padStart(2,'0');
+  el.textContent = isNaN(d) ? '' :
+    `화면 버전 ${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+})();
 
 let inFlightLoad = null;
 let lastDataSignature = null;
