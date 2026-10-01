@@ -62,6 +62,23 @@
   .block-card .block-title{ font-family: 'Gowun Dodum', sans-serif; font-size: 15.5px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
   .block-card .block-title .badge{ font-family: 'Gothic A1', sans-serif; font-size: 11.5px; font-weight: 700; background: var(--red); color: #fff; padding: 2px 9px; border-radius: 999px; }
   .block-toggle{ background: none; border: none; cursor: pointer; color: var(--ink-soft); font-size: 13px; display: flex; align-items: center; gap: 5px; }
+  .block-card .block-title .badge.gray{ background: var(--ink-soft); }
+  .import-sum{ font-size: 13.5px; line-height: 1.9; margin-bottom: 12px; }
+  .import-sum b{ font-weight: 700; }
+  .import-warn{ background: #FFF4E5; border: 1px solid #F59E0B; color: #92400E; border-radius: 8px; padding: 12px 14px; font-size: 12.5px; line-height: 1.7; margin-bottom: 12px; }
+  .import-done{ background: #ECFDF5; border: 1px solid #34D399; color: #065F46; border-radius: 8px; padding: 12px 14px; font-size: 13px; line-height: 1.7; margin-bottom: 12px; }
+  .import-warn ul{ margin: 6px 0 0; padding-left: 18px; }
+  .import-list{ max-height: 260px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 12px; }
+  .import-list table{ width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .import-list th, .import-list td{ padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  .import-list th{ background: var(--bg); position: sticky; top: 0; font-weight: 700; }
+  .import-list tr:last-child td{ border-bottom: none; }
+  .import-actions{ display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .import-actions button{ border: none; padding: 10px 16px; border-radius: 7px; font-family: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+  .import-actions button.go{ background: var(--green); color: #fff; }
+  .import-actions button.cancel{ background: var(--bg); color: var(--ink); border: 1px solid var(--line); }
+  .import-actions button:disabled{ opacity: 0.5; cursor: default; }
+  .import-progress{ font-size: 13px; color: var(--ink-soft); }
   .block-body{ display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
   .block-body.open{ display: block; }
   .block-form{ display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
@@ -200,6 +217,31 @@
           <code>BRANCH_BLOCKED</code> / <code>ROOM_BLOCKED</code> 목록을 수정해야 합니다.</div>
       </div>
       <div class="blocked-list" id="blockedList"></div>
+    </div>
+  </div>
+
+  <div class="block-card">
+    <div class="block-head" id="importHead">
+      <div class="block-title">호텔 회신 반영 <span class="badge gray" id="importBadge">엑셀 업로드</span></div>
+      <button class="block-toggle" id="importToggleBtn">
+        <span id="importToggleText">펼치기</span>
+        <span id="importChevron">▾</span>
+      </button>
+    </div>
+    <div class="block-body" id="importBody">
+      <div class="block-form">
+        <div class="fg">
+          <label>호텔에서 받은 파일 (.xlsx / .csv)</label>
+          <input type="file" id="importFile" accept=".xlsx,.csv,.txt">
+        </div>
+        <div class="helper">
+          엑셀(CSV) 다운로드로 내려받은 표에 호텔이 <b>예약여부</b>와 <b>예약번호</b>를 채워 보낸 파일을 그대로 올리면 됩니다.
+          여러 지점이 시트로 나뉘어 있어도 모두 읽습니다.<br>
+          · <b>예약여부에 "불가"</b> → 거절 처리  · <b>예약번호가 적힌 건</b> → 승인 + 예약번호 기재  · <b>둘 다 비어 있으면</b> 건드리지 않습니다.<br>
+          · 신청번호로 찾고 이름·사번까지 같은지 확인한 뒤에만 반영합니다. 올린 즉시 바뀌지 않고, 먼저 내용을 보여 드립니다.
+        </div>
+      </div>
+      <div id="importReport"></div>
     </div>
   </div>
 
@@ -366,6 +408,10 @@ checkServerVersion();
 
 let inFlightLoad = null;
 let lastDataSignature = null;
+/* 호텔 회신을 반영하는 동안에는 자동/수동 새로고침을 멈춘다.
+   쓰기가 줄줄이 나가는 중에 시트를 통째로 다시 읽어오면 아직 반영되지 않은
+   옛 값이 화면을 덮어써서, 어디까지 처리됐는지 알 수 없게 된다. */
+let importRunning = false;
 
 /* 새로고침은 요청 1건(adminData)으로 끝낸다. 예전에는 list 와 blocked 를
    따로 받아서 Apps Script 실행이 두 번 일어났다(요청당 1~3초).
@@ -373,6 +419,7 @@ let lastDataSignature = null;
    20초 자동 새로고침과 수동 새로고침이 겹치면 Apps Script 쪽에서
    순서대로 처리되면서 체감 대기가 두 배로 늘어나기 때문이다. */
 function loadAll(){
+  if(importRunning) return Promise.resolve();
   if(inFlightLoad) return inFlightLoad;
   inFlightLoad = (async ()=>{
     try{
@@ -866,6 +913,488 @@ document.getElementById('exportBtn').addEventListener('click', ()=>{
     alert('엑셀 파일을 만드는 데 실패했습니다.\n\n' + (err && err.message ? err.message : err));
   }
 });
+/* =========================================================
+   호텔 회신 반영
+   ---------------------------------------------------------
+   호텔은 우리가 내려준 명단에 '예약여부'(불가)와 '예약번호'를 채워서 돌려준다.
+   100건 넘는 결과를 손으로 옮기면 한 줄씩 밀려 엉뚱한 사람에게 예약번호가
+   들어갈 수 있어서, 파일을 그대로 읽어 신청번호로 맞춘다.
+
+   읽기 전용 두 단계로 나눠 뒀다. 파일을 고르면 "무엇이 어떻게 바뀌는지"만
+   보여주고, 담당자가 확인 버튼을 눌러야 서버로 보낸다.
+   ========================================================= */
+
+/* ── 1. xlsx 읽기 ─────────────────────────────────────────
+   라이브러리를 외부에서 불러오지 않는다. 회사망에서 CDN 이 막히면
+   기능이 통째로 죽고, 통째로 끼워 넣으면 화면이 수백 KB 무거워진다.
+   xlsx 는 결국 zip 이라 브라우저의 DecompressionStream 으로 풀 수 있다. */
+function dv(buf){ return new DataView(buf); }
+
+async function inflateRaw(bytes){
+  if(typeof DecompressionStream === 'undefined'){
+    throw new Error('이 브라우저는 xlsx 를 직접 열 수 없습니다. 엑셀에서 CSV 로 저장해 올려 주세요.');
+  }
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+// zip 중앙 디렉터리를 읽어 {파일이름: 바이트} 로 돌려준다.
+async function unzip(arrayBuffer, wanted){
+  const view = dv(arrayBuffer);
+  const bytes = new Uint8Array(arrayBuffer);
+  let eocd = -1;
+  for(let i = view.byteLength - 22; i >= 0 && i > view.byteLength - 66000; i--){
+    if(view.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+  }
+  if(eocd < 0) throw new Error('엑셀 파일(xlsx)이 아닌 것 같습니다. 예전 형식(.xls)이라면 엑셀에서 "다른 이름으로 저장 → Excel 통합 문서(.xlsx)" 로 바꿔 올려 주세요.');
+
+  const count = view.getUint16(eocd + 10, true);
+  let p = view.getUint32(eocd + 16, true);
+  const out = {};
+  const decoder = new TextDecoder();
+  for(let n = 0; n < count; n++){
+    if(view.getUint32(p, true) !== 0x02014b50) break;
+    const method   = view.getUint16(p + 10, true);
+    const compSize = view.getUint32(p + 20, true);
+    const nameLen  = view.getUint16(p + 28, true);
+    const extraLen = view.getUint16(p + 30, true);
+    const cmtLen   = view.getUint16(p + 32, true);
+    const localAt  = view.getUint32(p + 42, true);
+    const name = decoder.decode(bytes.subarray(p + 46, p + 46 + nameLen));
+    p += 46 + nameLen + extraLen + cmtLen;
+
+    if(wanted && !wanted(name)) continue;
+    // 지역 헤더의 이름·extra 길이는 중앙 디렉터리와 다를 수 있어 거기서 다시 읽는다
+    const lName  = view.getUint16(localAt + 26, true);
+    const lExtra = view.getUint16(localAt + 28, true);
+    const start  = localAt + 30 + lName + lExtra;
+    const raw    = bytes.subarray(start, start + compSize);
+    if(method === 0) out[name] = raw;
+    else if(method === 8) out[name] = await inflateRaw(raw);
+    else throw new Error('압축 방식을 읽을 수 없습니다(' + method + ').');
+  }
+  return out;
+}
+
+function xmlDoc(bytes){
+  const doc = new DOMParser().parseFromString(new TextDecoder().decode(bytes), 'application/xml');
+  if(doc.getElementsByTagName('parsererror').length) throw new Error('파일 내용을 읽지 못했습니다.');
+  return doc;
+}
+function colIndex(ref){           // "AB12" -> 27 (0부터)
+  let n = 0;
+  for(const ch of ref){
+    const c = ch.charCodeAt(0);
+    if(c < 65 || c > 90) break;
+    n = n * 26 + (c - 64);
+  }
+  return n - 1;
+}
+
+/* xlsx -> [{sheet, rows:[[셀,...]]}]  (값은 모두 문자열) */
+async function readXlsx(arrayBuffer){
+  const files = await unzip(arrayBuffer, name =>
+    name === 'xl/workbook.xml' || name === 'xl/_rels/workbook.xml.rels' ||
+    name === 'xl/sharedStrings.xml' || /^xl\/worksheets\/[^/]+\.xml$/.test(name));
+  if(!files['xl/workbook.xml']) throw new Error('엑셀 파일(xlsx)이 아닌 것 같습니다. 예전 형식(.xls)이라면 엑셀에서 "다른 이름으로 저장 → Excel 통합 문서(.xlsx)" 로 바꿔 올려 주세요.');
+
+  const shared = [];
+  if(files['xl/sharedStrings.xml']){
+    const doc = xmlDoc(files['xl/sharedStrings.xml']);
+    for(const si of doc.getElementsByTagName('si')){
+      let text = '';
+      for(const t of si.getElementsByTagName('t')) text += t.textContent;
+      shared.push(text);
+    }
+  }
+
+  const rels = {};
+  if(files['xl/_rels/workbook.xml.rels']){
+    for(const rel of xmlDoc(files['xl/_rels/workbook.xml.rels']).getElementsByTagName('Relationship')){
+      rels[rel.getAttribute('Id')] = rel.getAttribute('Target').replace(/^\/?xl\//, '').replace(/^\//, '');
+    }
+  }
+
+  const sheets = [];
+  for(const sh of xmlDoc(files['xl/workbook.xml']).getElementsByTagName('sheet')){
+    const rid = sh.getAttribute('r:id') || sh.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+    const target = rels[rid];
+    const bytes = target && files['xl/' + target];
+    if(!bytes) continue;
+    const rows = [];
+    for(const row of xmlDoc(bytes).getElementsByTagName('row')){
+      const cells = [];
+      for(const c of row.getElementsByTagName('c')){
+        const at = colIndex(c.getAttribute('r') || '');
+        const type = c.getAttribute('t');
+        let value = '';
+        if(type === 'inlineStr'){
+          for(const t of c.getElementsByTagName('t')) value += t.textContent;
+        } else {
+          const v = c.getElementsByTagName('v')[0];
+          const text = v ? v.textContent : '';
+          value = (type === 's') ? (shared[Number(text)] || '') : text;
+        }
+        if(at >= 0) cells[at] = value;
+      }
+      rows.push(cells);
+    }
+    sheets.push({ sheet: sh.getAttribute('name') || '', rows });
+  }
+  return sheets;
+}
+
+/* CSV 도 받는다 (엑셀에서 "CSV 로 저장" 한 경우) */
+function readCsv(text){
+  if(text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const rows = [];
+  let row = [], cell = '', quoted = false;
+  for(let i = 0; i < text.length; i++){
+    const ch = text[i];
+    if(quoted){
+      if(ch === '"'){ if(text[i+1] === '"'){ cell += '"'; i++; } else quoted = false; }
+      else cell += ch;
+    } else if(ch === '"'){ quoted = true; }
+    else if(ch === ','){ row.push(cell); cell = ''; }
+    else if(ch === '\n'){ row.push(cell); rows.push(row); row = []; cell = ''; }
+    else if(ch !== '\r'){ cell += ch; }
+  }
+  if(cell !== '' || row.length) { row.push(cell); rows.push(row); }
+  return [{ sheet: '', rows }];
+}
+
+/* ── 2. 표 -> 결정 목록 ─────────────────────────────────── */
+const IMPORT_HEADERS = { appNo: '신청번호', name: '이름', empid: '사번', decision: '예약여부', reservationNo: '예약번호' };
+
+function cellText(v){ return String(v == null ? '' : v).trim(); }
+
+/* 머리글 줄을 찾아 열 위치를 잡는다.
+   '예약번호' 는 우리가 내려준 빈 칸과 호텔이 채운 칸, 두 개가 있을 수 있어
+   모두 기억해 두고 값이 들어 있는 쪽을 쓴다. */
+function mapColumns(rows){
+  for(let r = 0; r < Math.min(rows.length, 10); r++){
+    const cells = (rows[r] || []).map(cellText);
+    const find = label => cells.indexOf(label);
+    const appNo = find(IMPORT_HEADERS.appNo);
+    if(appNo === -1) continue;
+    const resCols = [];
+    cells.forEach((c, i)=>{ if(c === IMPORT_HEADERS.reservationNo) resCols.push(i); });
+    return {
+      headerRow: r,
+      appNo,
+      name: find(IMPORT_HEADERS.name),
+      empid: find(IMPORT_HEADERS.empid),
+      decision: find(IMPORT_HEADERS.decision),
+      reservationNo: resCols
+    };
+  }
+  return null;
+}
+
+function parseReplyRows(sheets){
+  const parsed = [];
+  const skippedSheets = [];
+  sheets.forEach(({ sheet, rows })=>{
+    const cols = mapColumns(rows);
+    if(!cols || cols.decision === -1 && cols.reservationNo.length === 0){
+      if(rows.some(r => (r || []).some(c => cellText(c)))) skippedSheets.push(sheet || '(이름 없는 시트)');
+      return;
+    }
+    for(let r = cols.headerRow + 1; r < rows.length; r++){
+      const cells = rows[r] || [];
+      const appNo = cellText(cells[cols.appNo]);
+      if(!appNo) continue;
+      let reservationNo = '';
+      cols.reservationNo.forEach(i => { const v = cellText(cells[i]); if(v) reservationNo = v; });
+      parsed.push({
+        sheet,
+        appNo,
+        name: cols.name === -1 ? '' : cellText(cells[cols.name]),
+        empid: cols.empid === -1 ? '' : cellText(cells[cols.empid]),
+        decision: cols.decision === -1 ? '' : cellText(cells[cols.decision]),
+        reservationNo
+      });
+    }
+  });
+  return { parsed, skippedSheets };
+}
+
+/* 파일의 한 줄 -> 이 신청을 어떻게 할지.
+   '불가' 가 적혀 있으면 번호가 있어도 거절이 먼저다(호텔이 둘 다 적어 보낸 경우). */
+function decideFromRow(row){
+  if(/불가/.test(row.decision)) return { status: '거절', reservationNo: '' };
+  if(row.reservationNo) return { status: '승인', reservationNo: row.reservationNo };
+  return null;   // 아직 답이 오지 않은 줄
+}
+
+/* 파일 + 현재 명단 -> 반영할 것 / 못 할 것 */
+function planImport(parsedRows, applications){
+  const byAppNo = new Map();
+  applications.forEach(a => { if(a.appNo) byAppNo.set(String(a.appNo).trim(), a); });
+
+  const changes = [], warnings = [];
+  let untouched = 0, already = 0;
+  const seen = new Set();
+
+  parsedRows.forEach(row => {
+    const decided = decideFromRow(row);
+    if(!decided){ untouched++; return; }
+
+    const item = byAppNo.get(row.appNo);
+    if(!item){
+      warnings.push(`신청번호 ${row.appNo} (${row.name || '이름 없음'}) — 명단에 없습니다. 삭제됐거나 신청번호가 잘못 적힌 줄입니다.`);
+      return;
+    }
+    if(seen.has(item.id)){
+      warnings.push(`신청번호 ${row.appNo} — 파일에 두 번 나옵니다. 뒤쪽 줄은 무시했습니다.`);
+      return;
+    }
+    if(row.name && row.name !== String(item.name || '').trim()){
+      warnings.push(`신청번호 ${row.appNo} — 이름이 다릅니다(파일 ${row.name} / 명단 ${item.name}). 건너뜁니다.`);
+      return;
+    }
+    if(row.empid && row.empid !== String(item.empid || '').trim()){
+      warnings.push(`신청번호 ${row.appNo} (${item.name}) — 사번이 다릅니다(파일 ${row.empid} / 명단 ${item.empid}). 건너뜁니다.`);
+      return;
+    }
+    if(item.status === '취소'){
+      warnings.push(`신청번호 ${row.appNo} (${item.name}) — 직원이 취소한 신청이라 건너뜁니다.`);
+      return;
+    }
+
+    const nextReservation = decided.status === '승인' ? decided.reservationNo : String(item.reservationNo || '');
+    const statusSame = item.status === decided.status;
+    const resSame = String(item.reservationNo || '') === nextReservation;
+    if(statusSame && resSame){ already++; return; }
+
+    seen.add(item.id);
+    changes.push({
+      id: item.id, appNo: row.appNo, name: item.name, branch: item.branch, date: item.date,
+      fromStatus: item.status, toStatus: decided.status,
+      fromReservation: String(item.reservationNo || ''),
+      toReservation: nextReservation,
+      note: decided.status === '승인' && row.decision && !/불가/.test(row.decision) ? row.decision : ''
+    });
+  });
+
+  return { changes, warnings, untouched, already };
+}
+
+/* ── 3. 화면 ─────────────────────────────────────────────── */
+/* 파일에서 읽은 줄을 그대로 들고 있는다. 반영이 끝나면 서버에서 받아온
+   최신 명단으로 다시 계산해 보여주기 위해서다 — 일부가 실패했을 때
+   파일을 다시 고르지 않고 바로 남은 것만 다시 시도할 수 있다. */
+let importPlan = null;
+let importParsed = null;
+let importFileName = '';
+let importSkippedSheets = [];
+let importNotice = '';
+let importNoticeOk = false;
+
+function importEl(id){ return document.getElementById(id); }
+
+function renderImportReport(plan, fileName, skippedSheets){
+  const box = importEl('importReport');
+  if(!plan){ box.innerHTML = ''; return; }
+  const resultNote = importNotice
+    ? `<div class="${importNoticeOk ? 'import-done' : 'import-warn'}">${importNotice}</div>` : '';
+
+  const approve = plan.changes.filter(c => c.toStatus === '승인');
+  const reject  = plan.changes.filter(c => c.toStatus === '거절');
+  const notes   = approve.filter(c => c.note);
+
+  let html = resultNote + `<div class="import-sum">
+    <b>${escapeHtml(fileName)}</b> 을 읽었습니다.<br>
+    승인 <b>${approve.length}건</b>(예약번호 함께 기재) · 거절 <b>${reject.length}건</b>
+    · 아직 회신 없음 <b>${plan.untouched}건</b> · 이미 같은 값 <b>${plan.already}건</b>
+  </div>`;
+
+  const notices = [];
+  if(plan.warnings.length) notices.push(...plan.warnings);
+  if(skippedSheets && skippedSheets.length){
+    notices.push(`예약여부·예약번호 칸이 없어 건너뛴 시트: ${skippedSheets.join(', ')}`);
+  }
+  if(notes.length){
+    notices.push(`예약여부에 "${notes[0].note}" 처럼 표시가 붙은 건이 ${notes.length}건 있습니다. 승인으로 처리하되 표시 내용은 저장하지 않으니, 필요하면 따로 안내해 주세요.`);
+  }
+  if(notices.length){
+    html += `<div class="import-warn"><b>확인해 주세요</b><ul>${
+      notices.map(w => `<li>${escapeHtml(w)}</li>`).join('')}</ul></div>`;
+  }
+
+  if(plan.changes.length){
+    html += `<div class="import-list"><table><thead><tr>
+      <th>신청번호</th><th>이름</th><th>지점</th><th>이용일</th><th>처리</th><th>예약번호</th></tr></thead><tbody>${
+      plan.changes.map(c => `<tr>
+        <td>${escapeHtml(c.appNo)}</td>
+        <td>${escapeHtml(c.name)}</td>
+        <td>${escapeHtml(c.branch || '')}</td>
+        <td>${escapeHtml(c.date || '')}</td>
+        <td>${escapeHtml(c.fromStatus)} → <b>${escapeHtml(c.toStatus)}</b></td>
+        <td>${escapeHtml(c.toReservation || '-')}</td>
+      </tr>`).join('')}</tbody></table></div>`;
+    html += `<div class="import-actions">
+      <button type="button" class="go" id="importApplyBtn">${plan.changes.length}건 반영하기</button>
+      <button type="button" class="cancel" id="importCancelBtn">취소</button>
+      <span class="import-progress" id="importProgress"></span>
+    </div>`;
+  } else {
+    html += `<div class="import-sum">더 반영할 변경이 없습니다.</div>`;
+  }
+  box.innerHTML = html;
+
+  const applyBtn = importEl('importApplyBtn');
+  if(applyBtn){
+    applyBtn.addEventListener('click', applyImport);
+    importEl('importCancelBtn').addEventListener('click', ()=>{
+      importPlan = null; importParsed = null; importNotice = ''; importNoticeOk = false;
+      importEl('importFile').value = '';
+      renderImportReport(null);
+    });
+  }
+}
+
+importEl('importFile').addEventListener('change', async (e)=>{
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  importPlan = null;
+  importEl('importReport').innerHTML = '<div class="import-sum">파일을 읽는 중…</div>';
+  try{
+    let sheets;
+    if(/\.csv$|\.txt$/i.test(file.name)) sheets = readCsv(await file.text());
+    else sheets = await readXlsx(await file.arrayBuffer());
+
+    const { parsed, skippedSheets } = parseReplyRows(sheets);
+    if(parsed.length === 0){
+      throw new Error('신청번호가 있는 줄을 찾지 못했습니다. 관리자 화면에서 내려받은 표에 예약여부·예약번호만 채워 넣은 파일인지 확인해 주세요.');
+    }
+    importParsed = parsed;
+    importFileName = file.name;
+    importSkippedSheets = skippedSheets;
+    importNotice = ''; importNoticeOk = false;
+    importPlan = planImport(parsed, allApplications);
+    renderImportReport(importPlan, importFileName, importSkippedSheets);
+  }catch(err){
+    console.error(err);
+    importEl('importReport').innerHTML =
+      `<div class="import-warn"><b>파일을 읽지 못했습니다.</b><br>${escapeHtml(err && err.message ? err.message : String(err))}</div>`;
+  }
+});
+
+/* ── 4. 반영 ──────────────────────────────────────────────
+   상태는 updateStatusBulk 로 승인·거절 각 한 번에 보낸다.
+   예약번호는 건별 액션밖에 없어 하나씩 보내되, 한 건이 실패해도 나머지는
+   계속 보내고 실패한 신청번호를 그대로 알려준다(어디까지 됐는지 모르는 게 제일 곤란하다). */
+const IMPORT_CHUNK = 150;   // 서버 MAX_BULK_IDS(200) 보다 넉넉히 작게
+
+// 반영 도중 창을 닫으면 절반만 들어간 채로 끝난다
+function warnWhileImporting(e){ e.preventDefault(); e.returnValue = ''; }
+
+async function applyImport(){
+  if(!importPlan || !importPlan.changes.length) return;
+  const changes = importPlan.changes;
+  const approve = changes.filter(c => c.toStatus === '승인');
+  const reject  = changes.filter(c => c.toStatus === '거절');
+  const withNo  = changes.filter(c => c.toReservation !== c.fromReservation);
+
+  /* 예약번호는 건별로 보내야 해서(서버에 일괄 액션이 없다) 건수만큼 왕복한다.
+     한 건에 1~2초쯤 걸리니, 몇 분 걸릴 수 있다는 걸 미리 알려 준다. */
+  const minutes = Math.max(1, Math.round(withNo.length * 1.5 / 60));
+  if(!confirm(`승인 ${approve.length}건, 거절 ${reject.length}건을 반영합니다.\n`
+    + `예약번호 ${withNo.length}건도 함께 기재합니다.\n\n`
+    + `예약번호는 한 건씩 보내야 해서 ${minutes}분쯤 걸립니다.\n`
+    + `끝날 때까지 이 창을 닫지 마세요.\n\n계속할까요?`)) return;
+
+  const btn = importEl('importApplyBtn');
+  const cancelBtn = importEl('importCancelBtn');
+  const progress = importEl('importProgress');
+  btn.disabled = true; cancelBtn.disabled = true;
+  importEl('importFile').disabled = true;   // 반영이 끝나기 전에 새 파일을 올리면 옛 명단으로 계산된다
+  importRunning = true;
+  window.addEventListener('beforeunload', warnWhileImporting);
+  clearTimeout(pollTimer);
+  pollTimer = null;
+
+  const failed = [];
+  const say = (text)=> { progress.textContent = text; };
+
+  try{
+    // 1) 상태
+    for(const [status, list] of [['거절', reject], ['승인', approve]]){
+      for(let i = 0; i < list.length; i += IMPORT_CHUNK){
+        const part = list.slice(i, i + IMPORT_CHUNK);
+        say(`${status} ${Math.min(i + part.length, list.length)}/${list.length}건 처리 중…`);
+        const result = await apiPost('updateStatusBulk', { ids: part.map(c => c.id), status });
+        const missing = new Set(((result && result.notFound) || []).map(String));
+        part.forEach(c => {
+          if(missing.has(String(c.id))) failed.push(`${c.appNo} (${c.name}) 상태`);
+          else { const item = allApplications.find(a => a.id === c.id); if(item) item.status = status; }
+        });
+      }
+    }
+
+    // 2) 예약번호
+    for(let i = 0; i < withNo.length; i++){
+      const c = withNo[i];
+      say(`예약번호 ${i + 1}/${withNo.length}건 기재 중…`);
+      try{
+        await apiPost('updateReservation', { id: c.id, reservationNo: c.toReservation });
+        const item = allApplications.find(a => a.id === c.id);
+        if(item) item.reservationNo = c.toReservation;
+      }catch(err){
+        console.error(err);
+        failed.push(`${c.appNo} (${c.name}) 예약번호`);
+      }
+    }
+
+    lastDataSignature = null;
+    renderAdminTable();
+    renderStats();
+
+    if(failed.length){
+      importNoticeOk = false;
+      importNotice = `<b>${changes.length - failed.length}건 반영, ${failed.length}건 실패.</b><br>`
+        + `실패: ${escapeHtml(failed.join(', '))}<br>`
+        + `아래는 서버에서 다시 받아온 명단으로 계산한 <b>남은 건</b>입니다. 그대로 다시 눌러 주세요.`;
+      say(`${changes.length - failed.length}건 반영, ${failed.length}건 실패`);
+    } else {
+      importNoticeOk = true;
+      importNotice = `<b>${changes.length}건 모두 반영했습니다.</b>`;
+      say(`${changes.length}건 모두 반영했습니다.`);
+    }
+  }catch(err){
+    console.error(err);
+    importNoticeOk = false;
+    importNotice = `<b>반영 중 오류가 발생했습니다.</b><br>${escapeHtml(err && err.message ? err.message : String(err))}<br>`
+      + `아래는 서버에서 다시 받아온 명단으로 계산한 <b>남은 건</b>입니다.`;
+    say('반영 중 오류가 발생했습니다.');
+  }finally{
+    importRunning = false;
+    window.removeEventListener('beforeunload', warnWhileImporting);
+    /* 반드시 서버 기준으로 다시 읽고 다시 계산한다.
+       어디까지 들어갔는지 눈으로 확인할 수 있어야 하고, 다시 눌렀을 때
+       이미 처리된 건을 또 쓰지 않아야 한다. */
+    await loadAll();
+    schedulePoll();
+    if(importParsed){
+      importPlan = planImport(importParsed, allApplications);
+      renderImportReport(importPlan, importFileName, importSkippedSheets);
+      if(!importPlan.changes.length){
+        importEl('importFile').value = '';
+        importParsed = null;
+      }
+    }
+    importEl('importFile').disabled = false;
+  }
+}
+
+importEl('importHead').addEventListener('click', ()=>{
+  const body = importEl('importBody');
+  const open = body.classList.toggle('open');
+  importEl('importToggleText').textContent = open ? '접기' : '펼치기';
+  importEl('importChevron').textContent = open ? '▴' : '▾';
+});
+
 </script>
 
 </body>
