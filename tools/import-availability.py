@@ -35,6 +35,14 @@ MAPPING = {
              '디럭스 트윈': ['트윈']},
 }
 
+# ── 현황표와 상관없이 늘 막아 두는 날 ────────────────────────────────
+#   회사 사정으로 막는 날(연말, 사내 행사 등)은 호텔 현황표에 나오지 않는다.
+#   여기에 적어 두면 현황표를 새로 반영해도 지워지지 않는다.
+#   MANUAL_ALL  : 전 지점 마감
+#   MANUAL_BRANCH: 특정 지점만 마감   예) {'경주': ['2026-12-24']}
+MANUAL_ALL = ['2026-12-24']        # 12/24(목) 전 지점 마감
+MANUAL_BRANCH = {}
+
 _gs = io.open(os.path.join(ROOT, 'Code.gs'), encoding='utf-8').read()
 HOLIDAYS = set(re.findall(r'\d{4}-\d{2}-\d{2}',
                re.search(r'const HOLIDAYS = \{(.*?)\};', _gs, re.S).group(1)))
@@ -97,6 +105,9 @@ def compute(path):
                 bb.append(d)
             else:
                 for rt in full: rb[rt].append(d)
+        for d in MANUAL_ALL + MANUAL_BRANCH.get(br, []):
+            if bookable(d) and d not in bb:
+                bb.append(d)
         branch_blocked[br] = sorted(bb)
         room_blocked[br] = {rt: sorted(rb[rt]) for rt in ROOMS}
         report[br] = {'usable': usable, 'dates': len(dates),
@@ -124,6 +135,9 @@ def main():
         print('%s — 선택 가능 타입: %s' % (br, ', '.join(u) if u else '없음'))
         print('   신청 가능 요일 %d일 중' % rep[br]['bookable'])
         print('     지점 전체 마감 %d일' % len(bb[br]))
+        manual = [d for d in MANUAL_ALL + MANUAL_BRANCH.get(br, []) if bookable(d)]
+        if manual:
+            print('       (그 중 수동 지정: %s)' % ', '.join(sorted(set(manual))))
         for rt in ROOMS:
             if rt in u:
                 left = rep[br]['bookable'] - len(bb[br]) - len(rb[br][rt])
