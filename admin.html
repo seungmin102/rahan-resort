@@ -249,7 +249,10 @@ const CONFIG = {
   API_URL: 'https://script.google.com/macros/s/AKfycbwiQ-FnAwElBT_aH2Uxn6R-TbEhQZAhtOKNOopO5MI_bRYcJ6qHDigWYHMtPbsRmEaiog/exec'
 };
 
-const REQUEST_TIMEOUT_MS = 30000;
+/* 신청이 몰리는 시간대에는 Apps Script 실행이 줄을 서서 응답이 크게 늦어진다.
+   adminData 는 시트 전체를 읽으므로 특히 느리다. 30초로는 멀쩡한 응답까지
+   끊어버려 "서버에 연결할 수 없습니다" 가 뜨므로 넉넉히 둔다. */
+const REQUEST_TIMEOUT_MS = 90000;
 
 // Apps Script 가 응답하지 않을 때 버튼이 영원히 잠기지 않도록 시간 제한을 둔다.
 function fetchWithTimeout(url, options){
@@ -474,10 +477,17 @@ document.getElementById('refreshBtn').addEventListener('click', async ()=>{
   btn.textContent = '불러오는 중...';
   pollDelay = POLL_BASE_MS;
   lastActivity = Date.now();
+  // 몰리는 시간대에는 수십 초 걸릴 수 있어, 멈춘 게 아니라는 걸 보여준다
+  const startedAt = Date.now();
+  const tick = setInterval(()=>{
+    const sec = Math.round((Date.now() - startedAt) / 1000);
+    if(sec >= 5) btn.textContent = `불러오는 중... ${sec}초`;
+  }, 1000);
   try{
     await loadAll();
     if(!pollTimer) schedulePoll();
   }finally{
+    clearInterval(tick);
     btn.disabled = false;
     btn.textContent = label;
   }
