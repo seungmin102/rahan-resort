@@ -30,6 +30,7 @@
   .banner{ max-width: 1100px; margin: 0 auto 18px; padding: 14px 16px; border-radius: 10px; font-size: 13.5px; text-align: center; }
   .banner.error{ background: var(--red-bg); color: var(--red); border: 1px solid var(--red); text-align: left; line-height: 1.6; }
   .banner.error code{ background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+  .banner.info{ background: #EFF6FF; color: #1E40AF; border: 1px solid #93C5FD; }
   .banner.warn{ background: #FFF4E5; color: #92400E; border: 1px solid #F59E0B; text-align: left; line-height: 1.6; }
   .banner.warn b{ font-weight: 700; }
   .banner.warn code{ background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
@@ -158,6 +159,10 @@
 </header>
 
 <div class="container">
+  <div id="downloadHint" class="banner info hidden">
+    파일이 보이지 않으면 브라우저 우측 상단의 <b>다운로드 아이콘</b>을 확인하거나 <b>Ctrl+J</b> 를 눌러 보세요.
+  </div>
+
   <div id="staleServerBanner" class="banner warn hidden"></div>
 
   <div id="apiErrorBanner" class="banner error hidden">
@@ -773,16 +778,27 @@ document.getElementById('bulkClear').addEventListener('click', ()=>{
 });
 
 document.getElementById('exportBtn').addEventListener('click', ()=>{
+  /* 크롬은 다운로드를 우측 상단 아이콘에 작게 표시해서 놓치기 쉽다.
+     눌렀을 때 아무 일도 안 일어난 것처럼 보이지 않도록 버튼으로 결과를 알린다. */
+  const btn = document.getElementById('exportBtn');
+  const original = btn.textContent;
+  const say = (msg, ms)=>{
+    btn.textContent = msg;
+    clearTimeout(btn._t);
+    btn._t = setTimeout(()=>{ btn.textContent = original; }, ms || 3000);
+  };
+
   const filtered = getFilteredApplications();
   if(filtered.length === 0){ alert('내보낼 데이터가 없습니다.'); return; }
 
+  try{
   const headers = ['신청번호','이름','사번','지점','룸타입','이용일','요일','인원','박수','요청사항','상태','예약번호','접수일시'];
   const rows = filtered.map(item=>{
     const d = new Date(item.date + 'T00:00:00');
     const wd = weekdayKo[d.getDay()];
     const submitted = new Date(item.submittedAt);
     const submittedStr = isNaN(submitted) ? String(item.submittedAt||'') : `${submitted.getFullYear()}-${pad2(submitted.getMonth()+1)}-${pad2(submitted.getDate())} ${pad2(submitted.getHours())}:${pad2(submitted.getMinutes())}`;
-    return [item.appNo || '', item.name, item.empid, `라한호텔 ${item.branch}`, item.roomtype || '', item.date, wd, item.people, item.nights, (item.memo||'').replace(/\n/g,' '), item.status, item.reservationNo || '', submittedStr];
+    return [item.appNo || '', item.name, item.empid, `라한호텔 ${item.branch}`, item.roomtype || '', item.date, wd, item.people, item.nights, String(item.memo ?? '').replace(/\n/g,' '), item.status, item.reservationNo || '', submittedStr];
   });
   /* 엑셀은 = + - @ 로 시작하는 셀을 수식으로 해석한다.
      직원이 요청사항에 =HYPERLINK(...) 같은 걸 적어두면 담당자가 내려받아
@@ -800,7 +816,6 @@ document.getElementById('exportBtn').addEventListener('click', ()=>{
   const filename = `라한호텔_신청명단_${today.getFullYear()}-${pad2(today.getMonth()+1)}-${pad2(today.getDate())}.csv`;
   const blob = new Blob([csvWithBom], { type: 'text/csv;charset=utf-8;' });
 
-  try{
     if(window.navigator && window.navigator.msSaveOrOpenBlob){   // 구형 엣지/IE
       window.navigator.msSaveOrOpenBlob(blob, filename);
       return;
@@ -816,9 +831,15 @@ document.getElementById('exportBtn').addEventListener('click', ()=>{
     /* 다운로드가 시작되기 전에 URL 을 거둬가면 일부 브라우저에서 조용히 실패한다.
        바로 revoke 하지 않고 넉넉히 기다렸다 정리한다. */
     setTimeout(()=> URL.revokeObjectURL(url), 60000);
+    say(`${filtered.length}건 다운로드됨`, 5000);
+    const hint = document.getElementById('downloadHint');
+    hint.classList.remove('hidden');
+    clearTimeout(hint._t);
+    hint._t = setTimeout(()=> hint.classList.add('hidden'), 12000);
   }catch(err){
     console.error(err);
-    alert('엑셀 파일을 만드는 데 실패했습니다.\n브라우저의 다운로드 차단 설정을 확인해 주세요.');
+    say('다운로드 실패', 5000);
+    alert('엑셀 파일을 만드는 데 실패했습니다.\n\n' + (err && err.message ? err.message : err));
   }
 });
 </script>
