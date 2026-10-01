@@ -796,16 +796,30 @@ document.getElementById('exportBtn').addEventListener('click', ()=>{
   const csvContent = [headers, ...rows].map(row => row.map(csvCell).join(',')).join('\n');
   const csvWithBom = '\uFEFF' + csvContent;
 
-  const blob = new Blob([csvWithBom], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
   const today = new Date();
-  a.href = url;
-  a.download = `라한호텔_신청명단_${today.getFullYear()}-${pad2(today.getMonth()+1)}-${pad2(today.getDate())}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const filename = `라한호텔_신청명단_${today.getFullYear()}-${pad2(today.getMonth()+1)}-${pad2(today.getDate())}.csv`;
+  const blob = new Blob([csvWithBom], { type: 'text/csv;charset=utf-8;' });
+
+  try{
+    if(window.navigator && window.navigator.msSaveOrOpenBlob){   // 구형 엣지/IE
+      window.navigator.msSaveOrOpenBlob(blob, filename);
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    /* 다운로드가 시작되기 전에 URL 을 거둬가면 일부 브라우저에서 조용히 실패한다.
+       바로 revoke 하지 않고 넉넉히 기다렸다 정리한다. */
+    setTimeout(()=> URL.revokeObjectURL(url), 60000);
+  }catch(err){
+    console.error(err);
+    alert('엑셀 파일을 만드는 데 실패했습니다.\n브라우저의 다운로드 차단 설정을 확인해 주세요.');
+  }
 });
 </script>
 
