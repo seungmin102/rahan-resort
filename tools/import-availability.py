@@ -43,6 +43,16 @@ MAPPING = {
 MANUAL_ALL = ['2026-12-24']        # 12/24(목) 전 지점 마감
 MANUAL_BRANCH = {}
 
+#   룸 타입까지 지정해 늘 막아 두는 날  {지점: {룸타입: [날짜...]}}
+#   호텔이 "이 날 이 타입은 안 된다" 고 따로 알려온 건을 여기 적어 둔다.
+MANUAL_ROOM = {
+    '경주': {
+        '디럭스 트윈': ['2026-10-25', '2026-11-01', '2026-11-02', '2026-11-03',
+                      '2026-11-05', '2026-12-31'],
+        '디럭스 더블': ['2026-11-22'],
+    },
+}
+
 _gs = io.open(os.path.join(ROOT, 'Code.gs'), encoding='utf-8').read()
 HOLIDAYS = set(re.findall(r'\d{4}-\d{2}-\d{2}',
                re.search(r'const HOLIDAYS = \{(.*?)\};', _gs, re.S).group(1)))
@@ -108,6 +118,12 @@ def compute(path):
         for d in MANUAL_ALL + MANUAL_BRANCH.get(br, []):
             if bookable(d) and d not in bb:
                 bb.append(d)
+        # 변수 이름에 주의: 바깥 dates(현황표의 날짜 전체)를 가리면 집계가 틀어진다
+        for rt, manual_dates in MANUAL_ROOM.get(br, {}).items():
+            if rt not in usable: continue
+            for md in manual_dates:
+                if bookable(md) and md not in bb and md not in rb[rt]:
+                    rb[rt].append(md)
         branch_blocked[br] = sorted(bb)
         room_blocked[br] = {rt: sorted(rb[rt]) for rt in ROOMS}
         report[br] = {'usable': usable, 'dates': len(dates),

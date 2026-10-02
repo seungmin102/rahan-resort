@@ -46,7 +46,42 @@ def load():
                 room[m.group(1)][rmm.group(1)] = dates_in(rmm.group(2))
     return s, bm, rm, branch, room
 
+def branch_roomtypes():
+    """지점에서 실제로 고를 수 있는 룸 타입. apply.html 의 BRANCH_ROOMTYPES 를 그대로 읽는다."""
+    txt = io.open(APPLY, encoding='utf-8').read()
+    m = re.search(r'const BRANCH_ROOMTYPES = \{(.*?)\n\};', txt, re.S)
+    out = {}
+    if m:
+        for line in m.group(1).split('\n'):
+            mm = re.match(r"\s*'([^']+)':\s*\[(.*?)\],\s*$", line)
+            if mm:
+                out[mm.group(1)] = re.findall(r"'([^']+)'", mm.group(2))
+    return out
+
+def consolidate(branch, room):
+    """그 지점에서 고를 수 있는 타입이 같은 날 모두 막히면 '지점 전체 마감' 하나로 합친다.
+
+    안 합치면 같은 날이 타입별로 흩어져 남아, 현황을 볼 때 "이 날 아직 되는 타입이
+    있나" 를 매번 두 줄을 겹쳐 봐야 한다. import-availability.py 도 같은 규칙을 쓴다.
+    """
+    usable_map = branch_roomtypes()
+    merged = []
+    for b in branch:
+        usable = usable_map.get(b, ROOMS)
+        full = [d for d in set().union(*[set(room.get(b, {}).get(r, [])) for r in ROOMS])
+                if all(d in room.get(b, {}).get(r, []) for r in usable)]
+        for d in sorted(full):
+            if d not in branch[b]:
+                branch[b].append(d)
+                merged.append((b, d))
+            for r in ROOMS:
+                if d in room.get(b, {}).get(r, []):
+                    room[b][r].remove(d)
+    return merged
+
 def save(s, bm, rm, branch, room):
+    for b, d in consolidate(branch, room):
+        print('   합침: %s %s 는 두 타입이 모두 막혀 지점 전체 마감으로 바꿨습니다.' % (b, fmt(d)))
     def arr(ds): return '[%s]' % ', '.join("'%s'" % d for d in sorted(set(ds)))
     bbody = '\n'.join("  '%s': %s," % (b, arr(d)) for b, d in branch.items())
     rbody = '\n'.join(
