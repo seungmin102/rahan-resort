@@ -859,7 +859,7 @@ function renderLookupResults(items){
         ${item.reservationNo ? `<dt>예약번호</dt><dd>${escapeHtml(item.reservationNo)}</dd>` : ''}
       </dl>
       ${item.status === '승인'
-        ? '<div class="lc-note">예약 확정 안내는 하이웍스 메일로 별도 발송됩니다.</div>' : ''}
+        ? '<div class="lc-note">예약 확정 안내는 하이웍스 메일로 별도 발송됩니다.<br>사정이 생기면 <b>이용일 전에 꼭 취소</b>해 주세요. 호텔 예약이 함께 취소됩니다.</div>' : ''}
       ${cancellable
         ? `<button type="button" class="cancel-btn" data-id="${escapeHtml(item.id)}">신청 취소하기</button>`
         : (item.status === '취소' ? '<div class="lc-note">취소된 신청입니다.</div>' : '')}
@@ -876,18 +876,25 @@ async function cancelMyApplication(btn){
   const item = lookupItems.find(a => a.id === id);
   if(!item || !lookupIdentity) return;
 
-  // 승인된 건은 담당자가 이미 예약실에 넘겼을 수 있어 경고를 더 강하게 한다.
-  const extra = item.status === '승인'
-    ? '\n\n이미 승인된 신청입니다. 예약이 잡혀 있을 수 있으니, 취소 후 담당자에게도 알려 주세요.'
+  /* 승인된 건은 호텔에 예약이 잡혀 있다. 담당자 화면에 자동으로 뜨긴 하지만,
+     "취소 버튼만 누르면 끝" 이라고 생각하고 가볍게 누르는 걸 막아야 한다. */
+  const confirmed = item.status === '승인';
+  const extra = confirmed
+    ? '\n\n⚠ 호텔 예약이 확정된 신청입니다.\n취소하면 담당자가 호텔에 취소를 요청하게 됩니다.'
     : '';
   if(!confirm(`신청번호 ${item.appNo || '-'} (${item.date} 이용) 신청을 취소할까요?${extra}\n\n취소하면 되돌릴 수 없고, 다시 신청하셔야 합니다.`)) return;
+  if(confirmed && !confirm('한 번 더 확인합니다.\n\n정말 취소하시겠습니까?')) return;
 
   btn.disabled = true;
   btn.textContent = '취소 중...';
   try{
     await apiPost('cancelApplication', { id, name: lookupIdentity.name, empid: lookupIdentity.empid });
+    const wasConfirmed = item.status === '승인';
     item.status = '취소';
     renderLookupResults(lookupItems);
+    if(wasConfirmed){
+      alert('취소되었습니다.\n\n담당자 화면에 자동으로 표시되니 따로 연락하지 않으셔도 되지만,\n이용일이 얼마 남지 않았다면 담당자에게도 알려 주세요.');
+    }
   }catch(err){
     console.error(err);
     btn.disabled = false;
