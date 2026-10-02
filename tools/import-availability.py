@@ -41,7 +41,9 @@ MAPPING = {
 #   MANUAL_ALL  : 전 지점 마감
 #   MANUAL_BRANCH: 특정 지점만 마감   예) {'경주': ['2026-12-24']}
 MANUAL_ALL = ['2026-12-24']        # 12/24(목) 전 지점 마감
-MANUAL_BRANCH = {}
+MANUAL_BRANCH = {
+    '전주': ['2026-11-02', '2026-11-08'],   # 전주는 트윈 하나뿐이라 트윈 마감 = 지점 마감
+}
 
 #   룸 타입까지 지정해 늘 막아 두는 날  {지점: {룸타입: [날짜...]}}
 #   호텔이 "이 날 이 타입은 안 된다" 고 따로 알려온 건을 여기 적어 둔다.
@@ -50,6 +52,9 @@ MANUAL_ROOM = {
         '디럭스 트윈': ['2026-10-25', '2026-11-01', '2026-11-02', '2026-11-03',
                       '2026-11-05', '2026-12-31'],
         '디럭스 더블': ['2026-11-22'],
+    },
+    '포항': {
+        '디럭스 더블': ['2026-12-20'],
     },
 }
 
@@ -124,6 +129,14 @@ def compute(path):
             for md in manual_dates:
                 if bookable(md) and md not in bb and md not in rb[rt]:
                     rb[rt].append(md)
+
+        # 수동 지정까지 넣고 나서 다시 한 번 합친다.
+        # 손으로 적은 타입별 마감이 합쳐져 "그 날은 아예 안 된다" 가 되는 경우가 있다.
+        for d in sorted(set(sum((rb[rt] for rt in ROOMS), []))):
+            if all(d in rb[rt] for rt in usable):
+                bb.append(d)
+                for rt in ROOMS:
+                    if d in rb[rt]: rb[rt].remove(d)
         branch_blocked[br] = sorted(bb)
         room_blocked[br] = {rt: sorted(rb[rt]) for rt in ROOMS}
         report[br] = {'usable': usable, 'dates': len(dates),
