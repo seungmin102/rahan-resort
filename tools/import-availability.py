@@ -47,6 +47,13 @@ MANUAL_BRANCH = {
     '경주': ['2026-11-11'],
 }
 
+#   요일 단위로 늘 막아 두는 지점  {지점: [요일...]}
+#   "경주 일요일은 받지 않는다" 처럼 날짜가 아니라 규칙으로 정해진 것.
+#   날짜로 적어 두면 현황표를 반영할 때마다 새 달의 일요일이 다시 열린다.
+MANUAL_WEEKDAY = {
+    '경주': ['일'],
+}
+
 #   룸 타입까지 지정해 늘 막아 두는 날  {지점: {룸타입: [날짜...]}}
 #   호텔이 "이 날 이 타입은 안 된다" 고 따로 알려온 건을 여기 적어 둔다.
 MANUAL_ROOM = {
@@ -126,6 +133,11 @@ def compute(path):
                 bb.append(d)
             else:
                 for rt in full: rb[rt].append(d)
+        for wd in MANUAL_WEEKDAY.get(br, []):
+            for day in dates:
+                if bookable(day) and WD[datetime.date(*map(int, day.split('-'))).weekday()] == wd \
+                   and day not in bb:
+                    bb.append(day)
         for d in MANUAL_ALL + MANUAL_BRANCH.get(br, []):
             if bookable(d) and d not in bb:
                 bb.append(d)
@@ -173,6 +185,8 @@ def main():
         manual = [d for d in MANUAL_ALL + MANUAL_BRANCH.get(br, []) if bookable(d)]
         if manual:
             print('       (그 중 수동 지정: %s)' % ', '.join(sorted(set(manual))))
+        if MANUAL_WEEKDAY.get(br):
+            print('       (%s요일은 현황표와 무관하게 모두 마감)' % '·'.join(MANUAL_WEEKDAY[br]))
         for rt in ROOMS:
             if rt in u:
                 left = rep[br]['bookable'] - len(bb[br]) - len(rb[br][rt])
