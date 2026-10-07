@@ -5,1044 +5,133 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>육아휴직 · 단축근무 현황</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Gothic+A1:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg: #FFF8F3;
-    --panel: #FFFFFF;
-    --ink: #262421;
-    --ink-soft: #78716C;
-    --line: #F0E4DA;
-    --gold: #F2631A;
-    --gold-deep: #D94E0C;
-    --green: #16A34A;
-    --green-bg: #DCFCE7;
-    --amber: #CA8A04;
-    --amber-bg: #FEF3C7;
-    --red: #DC2626;
-    --red-bg: #FEE2E2;
-    --blue: #2563EB;
-    --blue-bg: #DBEAFE;
-  }
-  *{ box-sizing: border-box; }
-  body{ margin:0; background: var(--bg); color: var(--ink); font-family: 'Gothic A1', sans-serif; line-height: 1.55; }
-  .hidden{ display: none !important; }
-  button{ font-family: inherit; }
-
-  header{ background: var(--panel); border-bottom: 1px solid var(--line); padding: 22px 24px; position: sticky; top: 0; z-index: 10; }
-  header .inner{ max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  header h1{ font-family: 'Gowun Dodum', sans-serif; font-size: 20px; font-weight: 700; margin: 0; }
-  header .eyebrow{ font-family: 'Gowun Dodum', sans-serif; font-size: 12px; color: var(--gold-deep); margin-bottom: 4px; }
-  .head-actions{ display: flex; gap: 8px; flex-wrap: wrap; }
-  .btn{ border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 9px 14px; border-radius: 8px; font-size: 13.5px; cursor: pointer; }
-  .btn:hover{ background: var(--bg); }
-  .btn:disabled{ opacity: 0.5; cursor: not-allowed; }
-  .btn.primary{ background: var(--gold-deep); border-color: var(--gold-deep); color: #fff; font-weight: 700; }
-  .btn.primary:hover{ filter: brightness(0.92); }
-  .btn.danger{ color: var(--red); }
-  .btn.danger:hover{ border-color: var(--red); background: rgba(220,38,38,0.06); }
-  .btn.small{ padding: 5px 10px; font-size: 12px; border-radius: 6px; }
-
-  .container{ max-width: 1100px; margin: 0 auto; padding: 28px 24px 80px; }
-  .banner{ padding: 14px 16px; border-radius: 10px; font-size: 13.5px; margin-bottom: 18px; line-height: 1.6; }
-  .banner.error{ background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
-  .banner.info{ background: #EFF6FF; color: #1E40AF; border: 1px solid #93C5FD; }
-  .banner code{ background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
-
-  .stats{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
-  .stat-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
-  .stat-card .num{ font-family: 'Gowun Dodum', sans-serif; font-size: 26px; font-weight: 700; }
-  .stat-card .label{ font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
-  .stat-card.leave .num{ color: var(--gold-deep); }
-  .stat-card.short .num{ color: var(--blue); }
-  .stat-card.ret .num{ color: var(--green); }
-
-  .card{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 18px; }
-  .card-title{ font-family: 'Gowun Dodum', sans-serif; font-size: 15.5px; font-weight: 700; margin: 0; }
-  details.rules summary{ cursor: pointer; font-family: 'Gowun Dodum', sans-serif; font-size: 15px; font-weight: 700; }
-  details.rules ul{ margin: 12px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.85; color: var(--ink); }
-  details.rules .note{ font-size: 12px; color: var(--ink-soft); margin-top: 8px; }
-
-  .toolbar{ display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-  .toolbar input{ flex: 1; min-width: 180px; font-family: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); outline: none; }
-  .toolbar input:focus{ border-color: var(--gold); }
-  .chips{ display: flex; gap: 6px; flex-wrap: wrap; }
-  .chips button{ font-size: 12.5px; padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; color: var(--ink-soft); }
-  .chips button.active{ background: var(--ink); color: var(--bg); border-color: var(--ink); }
-
-  .table-wrap{ overflow-x: auto; }
-  table{ width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-  thead tr{ background: var(--bg); }
-  th{ text-align: left; font-size: 12.5px; color: var(--ink-soft); font-weight: 700; padding: 12px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  td{ padding: 12px 10px; font-size: 13.5px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  tbody tr:last-child td{ border-bottom: none; }
-  .nowrap{ white-space: nowrap; }
-  .soft{ color: var(--ink-soft); font-size: 12.5px; }
-  .child-line{ white-space: nowrap; font-size: 13px; }
-  .child-line + .child-line{ margin-top: 4px; }
-  .neg{ color: var(--red); font-weight: 700; }
-
-  .pill{ display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
-  .pill.leave{ background: var(--gold-deep); color: #fff; }
-  .pill.short{ background: var(--blue); color: #fff; }
-  .pill.plan{ background: var(--amber-bg); color: #92400E; }
-  .pill.done{ background: #F1EDE9; color: var(--ink-soft); }
-  .pill.none{ background: transparent; color: var(--ink-soft); font-weight: 400; padding-left: 0; }
-  .pill.warn{ background: var(--red-bg); color: var(--red); }
-
-  .empty-state{ text-align: center; padding: 60px 20px; color: var(--ink-soft); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
-  .empty-state h3{ font-family: 'Gowun Dodum', sans-serif; font-size: 17px; color: var(--ink); margin: 0 0 6px; font-weight: 700; }
-  .empty-state p{ font-size: 13.5px; margin: 0; }
-
-  /* 상세 · 입력 창 */
-  dialog{ border: none; border-radius: 14px; padding: 0; width: min(860px, calc(100vw - 32px)); max-height: calc(100vh - 48px); background: var(--bg); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
-  dialog.form-dialog{ width: min(480px, calc(100vw - 32px)); background: var(--panel); }
-  dialog::backdrop{ background: rgba(38,36,33,0.45); }
-  .dlg-head{ display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 22px 14px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 1; }
-  .dlg-head h2{ font-family: 'Gowun Dodum', sans-serif; font-size: 19px; margin: 0; }
-  .dlg-head .sub{ font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
-  .dlg-close{ background: none; border: none; font-size: 22px; line-height: 1; cursor: pointer; color: var(--ink-soft); padding: 2px 6px; }
-  .dlg-body{ padding: 18px 22px 22px; }
-
-  .section-head{ display: flex; justify-content: space-between; align-items: center; margin: 22px 0 10px; gap: 10px; }
-  .section-head h3{ font-family: 'Gowun Dodum', sans-serif; font-size: 16px; margin: 0; }
-
-  /* 직원 카드: 직원 정보 + 자녀별 현황을 한 화면에 펼쳐 둔다 */
-  .emp-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; }
-  .emp-head{ display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
-  .emp-title{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .emp-title h3{ font-family: 'Gowun Dodum', sans-serif; font-size: 18px; margin: 0; }
-  .emp-facts{ display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13px; margin-top: 8px; align-items: center; }
-  .emp-facts .k{ color: var(--ink-soft); margin-right: 5px; font-size: 12px; }
-  .emp-card .child-card{ background: var(--bg); margin: 14px 0 0; }
-  .emp-card .meter{ background: var(--panel); }
-  .emp-card .usage-table{ background: var(--panel); }
-  .no-child{ margin-top: 12px; font-size: 13px; color: var(--ink-soft); background: var(--bg); border-radius: 10px; padding: 12px 14px; }
-  .child-card{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; }
-  .child-top{ display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
-  .child-name{ font-weight: 700; font-size: 15px; }
-  .child-meta{ font-size: 12.5px; color: var(--ink-soft); }
-  .meters{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0 6px; }
-  .meter{ border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
-  .meter .m-title{ font-size: 12.5px; color: var(--ink-soft); display: flex; justify-content: space-between; gap: 8px; }
-  .meter .m-remain{ font-family: 'Gowun Dodum', sans-serif; font-size: 20px; font-weight: 700; margin: 2px 0 8px; }
-  .meter.leave .m-remain{ color: var(--gold-deep); }
-  .meter.short .m-remain{ color: var(--blue); }
-  .meter .m-remain.neg{ color: var(--red); }
-  .bar{ height: 8px; background: #F1EDE9; border-radius: 999px; overflow: hidden; display: flex; }
-  .bar span{ display: block; height: 100%; }
-  .meter.leave .bar .done{ background: var(--gold-deep); }
-  .meter.leave .bar .plan{ background: #F8B48E; }
-  .meter.short .bar .done{ background: var(--blue); }
-  .meter.short .bar .plan{ background: #93B4F5; }
-  .meter .m-foot{ font-size: 12px; color: var(--ink-soft); margin-top: 7px; line-height: 1.6; }
-  .warns{ margin: 10px 0 0; padding: 10px 12px 10px 28px; background: #FFF4E5; border: 1px solid #F59E0B; color: #92400E; border-radius: 8px; font-size: 12.5px; line-height: 1.7; }
-  .usage-table{ margin-top: 12px; font-size: 13px; }
-  .usage-table th, .usage-table td{ padding: 8px 8px; font-size: 12.5px; vertical-align: middle; }
-  .row-actions{ display: flex; gap: 6px; justify-content: flex-end; }
-
-  /* 입력 폼 */
-  .form-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
-  .form-grid .full{ grid-column: 1 / -1; }
-  .fg{ display: flex; flex-direction: column; gap: 5px; }
-  .fg label{ font-size: 12.5px; color: var(--ink-soft); }
-  .fg label .req{ color: var(--red); }
-  .fg input, .fg select, .fg textarea{ font-family: inherit; font-size: 14px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); outline: none; width: 100%; }
-  .fg input:focus, .fg select:focus, .fg textarea:focus{ border-color: var(--gold); }
-  .fg textarea{ resize: vertical; min-height: 60px; }
-  .fg .hint{ font-size: 11.5px; color: var(--ink-soft); line-height: 1.5; }
-  .check{ display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
-  .form-error{ background: var(--red-bg); color: var(--red); border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-top: 12px; }
-  .form-preview{ background: var(--bg); border-radius: 8px; padding: 10px 12px; font-size: 12.5px; margin-top: 12px; line-height: 1.7; }
-  .form-actions{ display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
-
-  .gate{ max-width: 420px; margin: 40px auto; }
-  .gate p{ font-size: 13px; color: var(--ink-soft); margin: 6px 0 14px; }
-
-  .toast{ position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 11px 18px; border-radius: 10px; font-size: 13.5px; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
-
-  @media (max-width: 720px){
-    header{ padding: 16px; }
-    .container{ padding: 20px 16px 60px; }
-    .stats{ grid-template-columns: repeat(2, 1fr); }
-    .meters{ grid-template-columns: 1fr; }
-    .form-grid{ grid-template-columns: 1fr; }
-    .emp-card{ padding: 16px; }
-    .emp-head{ flex-direction: column; }
-    .dlg-body{ padding: 16px; }
-  }
+  body{ margin: 16px; font-family: sans-serif; } /* 이 파일을 단독으로 열 때만 쓰임 */
+  /* 사내 시스템 화면에 끼워 넣을 수 있도록 모든 스타일을 #parental-leave 안으로 한정한다 */
+  #parental-leave{ font-family: inherit; color: #262421; font-size: 14px; }
+  #parental-leave h2{ font-size: 18px; margin: 0 0 12px; }
+  #parental-leave .pl-search{ width: 100%; max-width: 320px; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font: inherit; margin-bottom: 12px; box-sizing: border-box; }
+  #parental-leave .pl-wrap{ overflow-x: auto; }
+  #parental-leave table{ width: 100%; border-collapse: collapse; }
+  #parental-leave th, #parental-leave td{ border: 1px solid #ddd; padding: 8px 10px; text-align: left; vertical-align: top; white-space: nowrap; }
+  #parental-leave th{ background: #f5f5f5; font-weight: 700; }
+  #parental-leave .pl-num{ text-align: right; }
+  #parental-leave .pl-neg{ color: #DC2626; font-weight: 700; }
+  #parental-leave .pl-sub{ color: #78716C; font-size: 12px; }
+  #parental-leave .pl-note{ color: #78716C; font-size: 12px; margin-top: 8px; line-height: 1.6; }
+  #parental-leave .pl-empty{ text-align: center; color: #78716C; padding: 24px; }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="inner">
-    <div>
-      <div class="eyebrow">인사 · 근태</div>
-      <h1>육아휴직 · 육아기 단축근무 현황</h1>
-    </div>
-    <div class="head-actions">
-      <button class="btn" id="refreshBtn">새로고침</button>
-      <button class="btn" id="exportBtn">엑셀(CSV) 다운로드</button>
-      <button class="btn primary" id="addEmpBtn">+ 직원 등록</button>
-    </div>
+<div id="parental-leave">
+  <h2>육아휴직 · 육아기 단축근무 현황</h2>
+  <input type="search" class="pl-search" id="plSearch" placeholder="이름, 사번, 부서 검색">
+  <div class="pl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>이름</th><th>사번</th><th>부서</th><th>자녀(생년월일)</th>
+          <th>육아휴직 기간</th><th>휴직 잔여</th><th>단축 기간</th><th>단축 잔여</th>
+        </tr>
+      </thead>
+      <tbody id="plBody"></tbody>
+    </table>
   </div>
-</header>
-
-<div class="container">
-  <div id="demoBanner" class="banner info hidden">
-    <b>예시 데이터로 보는 중입니다.</b> 입력한 내용은 이 창을 닫으면 사라집니다.
-    실제로 쓰려면 <code>LeaveCode.gs</code> 를 별도 구글 시트에 배포한 뒤, 이 파일의 <code>CONFIG.API_URL</code> 에 웹 앱 주소를 넣으세요.
-  </div>
-  <div id="errorBanner" class="banner error hidden"></div>
-
-  <div id="gate" class="card gate hidden">
-    <h2 class="card-title">접근 키 입력</h2>
-    <p>직원·자녀 개인정보를 다루는 화면이라 담당자 접근 키가 필요합니다. 키는 이 탭을 닫으면 지워집니다.</p>
-    <form id="gateForm" class="fg">
-      <input type="password" id="gateKey" autocomplete="current-password" placeholder="접근 키">
-      <button class="btn primary" type="submit" style="margin-top:8px;">확인</button>
-    </form>
-  </div>
-
-  <div id="main" class="hidden">
-    <div class="stats">
-      <div class="stat-card"><div class="num" id="statEmp">0</div><div class="label">등록 직원</div></div>
-      <div class="stat-card leave"><div class="num" id="statLeave">0</div><div class="label">현재 육아휴직 중</div></div>
-      <div class="stat-card short"><div class="num" id="statShort">0</div><div class="label">현재 단축근무 중</div></div>
-      <div class="stat-card ret"><div class="num" id="statReturn">0</div><div class="label">30일 이내 복귀·종료 예정</div></div>
-    </div>
-
-    <details class="card rules">
-      <summary>계산 기준 (남녀고용평등법, 2025.2.23. 시행 기준)</summary>
-      <ul>
-        <li><b>육아휴직</b>: 자녀 1명당 <b>1년</b>. 부모가 같은 자녀로 각각 3개월 이상 쓰거나, 한부모·중증 장애아동 부모는 <b>1년 6개월</b>. 자녀 정보의 "6개월 추가" 에 체크하면 반영됩니다.</li>
-        <li>대상: 만 8세 이하 또는 초등학교 2학년 이하 자녀. 나눠 쓰기는 <b>3회 분할(총 4번)</b>까지. 이어지는 기간은 1번으로 셉니다.</li>
-        <li><b>육아기 근로시간 단축</b>: 자녀 1명당 <b>1년 + 쓰지 않은 육아휴직 기간의 2배</b> (육아휴직을 하나도 안 쓰면 최대 3년). 1년 기준의 남은 육아휴직만 가산합니다.</li>
-        <li>대상: 만 12세 이하 또는 초등학교 6학년 이하 자녀. 한 번에 1개월 이상, 단축 후 주 15~35시간.</li>
-        <li>기간은 개월+일로 셉니다(시작일부터 한 달 단위, 남는 날은 일수). 합산할 때 30일을 1개월로 봅니다.</li>
-        <li>잔여 기간은 <b>등록된 예정 기간까지 뺀 값</b>입니다. "사용" 은 오늘까지 실제로 지난 기간입니다.</li>
-      </ul>
-      <div class="note">대상 연령 기한은 생년월일로 추정한 값(만 나이와 정상 취학 기준 중 늦은 날)입니다. 조기·유예 입학은 반영되지 않으니 경계에 걸리면 서류로 확인하세요. 법이 바뀌면 파일 상단 <code>RULES</code> 값을 고치면 됩니다.</div>
-    </details>
-
-    <div class="card">
-      <div class="toolbar">
-        <input type="text" id="search" placeholder="이름, 사번, 부서, 자녀 이름으로 검색">
-        <div class="chips" id="filterChips">
-          <button data-filter="all" class="active">전체</button>
-          <button data-filter="leave">휴직 중</button>
-          <button data-filter="short">단축 중</button>
-          <button data-filter="plan">예정 있음</button>
-          <button data-filter="warn">확인 필요</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="listWrap"></div>
+  <div class="pl-note">
+    잔여 = 한도 − 등록된 기간(예정 포함). 육아휴직 한도는 자녀당 1년(6개월 추가 대상은 1년 6개월),
+    단축근무 한도는 1년 + 쓰지 않은 육아휴직의 2배입니다. 30일을 1개월로 셉니다.
   </div>
 </div>
 
-<dialog id="formDlg" class="form-dialog"></dialog>
-<div id="toast" class="toast hidden"></div>
-
 <script>
-const CONFIG = {
-  // LeaveCode.gs 를 배포한 웹 앱 주소(.../exec). 비워 두면 예시 데이터로 동작한다.
-  // ※ 휴양시설 신청(Code.gs)과 다른 주소여야 한다.
-  API_URL: ''
-};
-
-/* 법정 기준. LeaveCode.gs 의 USAGE_TYPES / EXTEND_REASONS / *_SHORT_HOURS 와 맞출 것. */
-const RULES = {
-  LEAVE_BASE_MONTHS: 12,
-  LEAVE_EXTENDED_MONTHS: 18,
-  LEAVE_MAX_USES: 4,            // 3회 분할 = 총 4번
-  LEAVE_AGE_LIMIT: 8,           // 만 8세 이하
-  LEAVE_GRADE_LIMIT: 2,         // 초등 2학년 이하
-  SHORT_BASE_MONTHS: 12,
-  SHORT_UNUSED_MULTIPLIER: 2,   // 쓰지 않은 육아휴직의 2배 가산
-  SHORT_AGE_LIMIT: 12,          // 만 12세 이하
-  SHORT_GRADE_LIMIT: 6,         // 초등 6학년 이하
-  SHORT_MIN_MONTHS: 1,
-  MIN_SHORT_HOURS: 15,
-  MAX_SHORT_HOURS: 35
-};
-const USAGE_TYPES = ['육아휴직','육아기단축'];
-const EXTEND_REASONS = ['부모 모두 3개월 이상 사용','한부모','중증 장애아동 부모'];
-
-const ERROR_MESSAGES = {
-  unauthorized: '접근 키가 맞지 않습니다.',
-  not_configured: '서버에 접근 키(ACCESS_KEY)가 설정되지 않았습니다. Apps Script 프로젝트 설정 > 스크립트 속성에 추가하세요.',
-  unknown_action: '서버가 이 기능을 모릅니다. LeaveCode.gs 를 새 버전으로 재배포했는지 확인하세요.',
-  missing_name: '이름을 입력하세요.',
-  name_too_long: '이름은 20자 이하로 입력하세요.',
-  invalid_empid: '사번은 숫자로 입력하세요.',
-  duplicate_empid: '같은 사번의 직원이 이미 있습니다.',
-  invalid_hire_date: '입사일 형식이 올바르지 않습니다.',
-  invalid_birth_date: '생년월일을 입력하세요.',
-  invalid_extend_reason: '6개월 추가 사유를 고르세요.',
-  employee_not_found: '직원 정보를 찾을 수 없습니다. 새로고침 후 다시 시도하세요.',
-  child_not_found: '자녀 정보를 찾을 수 없습니다. 새로고침 후 다시 시도하세요.',
-  invalid_type: '구분을 고르세요.',
-  invalid_start_date: '시작일을 입력하세요.',
-  invalid_end_date: '종료일을 입력하세요.',
-  end_before_start: '종료일이 시작일보다 빠릅니다.',
-  before_birth: '시작일이 자녀 생년월일보다 빠릅니다.',
-  invalid_hours: '단축 후 근로시간은 주 15~35시간이어야 합니다.',
-  overlap: '이 직원의 다른 육아휴직·단축 기간과 겹칩니다.',
-  memo_too_long: '메모는 500자 이하로 입력하세요.',
-  dept_too_long: '부서는 50자 이하로 입력하세요.',
-  position_too_long: '직급은 50자 이하로 입력하세요.',
-  not_found: '이미 삭제되었거나 찾을 수 없습니다. 새로고침하세요.'
-};
-
 /* =========================================================
-   날짜 계산 (모두 'YYYY-MM-DD' 문자열, UTC 기준으로 계산해 시간대 영향을 없앤다)
+   데이터 — 사내 시스템에서 이 형식으로 채워 주면 된다.
+   날짜는 'YYYY-MM-DD'. 기간은 [시작일, 종료일] (양 끝 포함).
+   extended: 육아휴직 6개월 추가 대상(부모 모두 3개월 이상 사용, 한부모, 중증 장애아동 부모).
+   아래는 화면 확인용 가상 데이터.
    ========================================================= */
-const DAY_MS = 86400000;
-const pad = n => String(n).padStart(2, '0');
-function parseD(s){
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
-  if(!m) return null;
-  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
-  return (d.getUTCFullYear() === +m[1] && d.getUTCMonth() === +m[2] - 1 && d.getUTCDate() === +m[3]) ? d : null;
-}
-const fmtD = d => d.toISOString().slice(0, 10);
-const addDays = (s, n) => fmtD(new Date(parseD(s).getTime() + n * DAY_MS));
-const daysBetween = (a, b) => Math.round((parseD(b) - parseD(a)) / DAY_MS);
+const DATA = [
+  { name: '김하늘', empid: '210034', dept: '경영지원팀', children: [
+    { name: '김다온', birthDate: '2025-08-07', extended: false,
+      leaves: [['2025-11-07', '2026-11-06']], shorts: [] }
+  ]},
+  { name: '이준호', empid: '180112', dept: '영업1팀', children: [
+    { name: '이서아', birthDate: '2020-04-07', extended: false,
+      leaves: [['2020-12-07', '2021-04-06']], shorts: [] },
+    { name: '이시우', birthDate: '2024-04-07', extended: false,
+      leaves: [['2024-06-07', '2024-12-06']], shorts: [['2026-06-07', '2027-06-06']] }
+  ]},
+  { name: '박서연', empid: '220871', dept: '마케팅팀', children: [] },
+  { name: '최민재', empid: '150420', dept: '재무팀', children: [
+    { name: '최윤', birthDate: '2018-06-07', extended: true,
+      leaves: [['2019-04-07', '2020-04-06']], shorts: [['2021-10-07', '2022-10-06']] }
+  ]}
+];
+
+/* 법정 기준 (2025.2.23. 시행). 법이 바뀌면 여기만 고친다. */
+const LEAVE_MONTHS = 12, LEAVE_EXTENDED_MONTHS = 18, SHORT_MONTHS = 12, SHORT_BONUS_RATE = 2;
+
+/* 날짜는 UTC 로 다뤄 시간대 영향을 없앤다 */
+const DAY = 86400000;
+const toDate = s => new Date(s + 'T00:00:00Z');
+const toStr = d => d.toISOString().slice(0, 10);
+const addDays = (s, n) => toStr(new Date(toDate(s).getTime() + n * DAY));
 function addMonths(s, n){
-  const d = parseD(s);
-  const y = d.getUTCFullYear(), m = d.getUTCMonth() + n, day = d.getUTCDate();
+  const d = toDate(s), y = d.getUTCFullYear(), m = d.getUTCMonth() + n;
   const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
-  return fmtD(new Date(Date.UTC(y, m, Math.min(day, last))));
+  return toStr(new Date(Date.UTC(y, m, Math.min(d.getUTCDate(), last))));
 }
-function todayStr(){
-  const t = new Date();
-  return `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`;
-}
-const TODAY = todayStr();
-
-/* 기간 [s, e] (양 끝 포함)을 "일 환산 단위"로. 한 달 = 30.
-   시작일부터 한 달씩 세고, 남는 날은 그대로 일수로 더한다. */
-function spanUnits(s, e){
-  if(!s || !e || e < s) return 0;
-  const endEx = addDays(e, 1);
+// 기간 길이를 일 단위로: 시작일부터 한 달씩 센 뒤 남는 날을 더한다 (1개월 = 30일)
+function length(start, end){
+  const endNext = addDays(end, 1);
   let m = 0;
-  while(addMonths(s, m + 1) <= endEx) m++;
-  return m * 30 + daysBetween(addMonths(s, m), endEx);
+  while(addMonths(start, m + 1) <= endNext) m++;
+  return m * 30 + Math.round((toDate(endNext) - toDate(addMonths(start, m))) / DAY);
 }
-// 오늘까지 지난 부분만
-function spanUnitsUntilToday(s, e){
-  if(s > TODAY) return 0;
-  return spanUnits(s, e < TODAY ? e : TODAY);
-}
-function fmtUnits(u){
-  const neg = u < 0; u = Math.abs(u);
+function fmtLength(u){
+  const sign = u < 0 ? '-' : ''; u = Math.abs(u);
   const m = Math.floor(u / 30), d = u % 30;
-  const parts = [];
-  if(m) parts.push(`${m}개월`);
-  if(d || !m) parts.push(`${d}일`);
-  return (neg ? '-' : '') + parts.join(' ');
+  return sign + [m ? m + '개월' : '', d || !m ? d + '일' : ''].filter(Boolean).join(' ');
 }
-function fmtKDate(s){
-  if(!s) return '';
-  const d = parseD(s);
-  const wd = '일월화수목금토'[d.getUTCDay()];
-  return `${s.replace(/-/g, '.')}(${wd})`;
-}
-function ageText(birth){
-  if(!parseD(birth)) return '';
-  let age = +TODAY.slice(0, 4) - +birth.slice(0, 4);
-  if(TODAY.slice(5) < birth.slice(5)) age--;
-  if(age < 0) return '출생 예정';
-  if(age === 0){
-    const months = (+TODAY.slice(0,4) - +birth.slice(0,4)) * 12 + (+TODAY.slice(5,7) - +birth.slice(5,7)) - (TODAY.slice(8) < birth.slice(8) ? 1 : 0);
-    return `생후 ${months}개월`;
-  }
-  return `만 ${age}세`;
-}
-/* 대상 자격이 끝나는 날(추정): "만 N세 이하" 와 "초등 G학년 이하" 중 늦은 날.
-   만 N세 이하 → (N+1)번째 생일 전날. 초등 G학년 이하 → 출생연도+7년 3월 입학 기준, G학년이 끝나는 2월 말. */
-function eligibilityEnd(birth, ageLimit, gradeLimit){
-  const byAge = addDays(addMonths(birth, (ageLimit + 1) * 12), -1);
-  const y = +birth.slice(0, 4) + 6 + gradeLimit;
-  const byGrade = fmtD(new Date(Date.UTC(y, 2, 0))); // 그 해 2월 말일
-  return byAge > byGrade ? byAge : byGrade;
+const shortDate = s => s.slice(2).replace(/-/g, '.');
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function remaining(child){
+  const used = list => list.reduce((sum, [s, e]) => sum + length(s, e), 0);
+  const leaveUsed = used(child.leaves), shortUsed = used(child.shorts);
+  const leaveLimit = (child.extended ? LEAVE_EXTENDED_MONTHS : LEAVE_MONTHS) * 30;
+  const shortLimit = SHORT_MONTHS * 30 + SHORT_BONUS_RATE * Math.max(0, LEAVE_MONTHS * 30 - leaveUsed);
+  return { leave: leaveLimit - leaveUsed, short: shortLimit - shortUsed };
 }
 
-/* =========================================================
-   상태
-   ========================================================= */
-let state = { employees: [], children: [], usages: [] };
-let filter = 'all';
-let accessKey = '';
-const DEMO = !CONFIG.API_URL;
+const periods = list => list.length ? list.map(([s, e]) => `${shortDate(s)} ~ ${shortDate(e)}`).join('<br>') : '-';
+const remainCell = u => `<td class="pl-num${u < 0 ? ' pl-neg' : ''}">${fmtLength(u)}</td>`;
 
-function escapeHtml(v){
-  return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-const byId = (list, id) => list.find(x => x.id === id);
-const childrenOf = empId => state.children.filter(c => c.employeeId === empId).sort((a, b) => a.birthDate < b.birthDate ? -1 : 1);
-const usagesOf = childId => state.usages.filter(u => u.childId === childId).sort((a, b) => a.startDate < b.startDate ? -1 : 1);
-
-/* 이어지는 기간(앞 종료일 다음 날 = 뒤 시작일)은 한 번 사용으로 센다. */
-function countUses(segs){
-  let n = 0, prevEnd = null;
-  segs.forEach(u => {
-    if(!(prevEnd && addDays(prevEnd, 1) === u.startDate)) n++;
-    prevEnd = u.endDate;
-  });
-  return n;
-}
-
-function summarizeChild(child){
-  const us = usagesOf(child.id);
-  const leaves = us.filter(u => u.type === '육아휴직');
-  const shorts = us.filter(u => u.type === '육아기단축');
-  const sum = (list, f) => list.reduce((a, u) => a + f(u.startDate, u.endDate), 0);
-
-  const leaveLimit = (child.extended ? RULES.LEAVE_EXTENDED_MONTHS : RULES.LEAVE_BASE_MONTHS) * 30;
-  const leaveTotal = sum(leaves, spanUnits);
-  const leaveDone = sum(leaves, spanUnitsUntilToday);
-  const unusedBase = Math.max(0, RULES.LEAVE_BASE_MONTHS * 30 - leaveTotal);
-  const shortLimit = RULES.SHORT_BASE_MONTHS * 30 + RULES.SHORT_UNUSED_MULTIPLIER * unusedBase;
-  const shortTotal = sum(shorts, spanUnits);
-  const shortDone = sum(shorts, spanUnitsUntilToday);
-  const leaveUses = countUses(leaves);
-
-  const leaveDeadline = eligibilityEnd(child.birthDate, RULES.LEAVE_AGE_LIMIT, RULES.LEAVE_GRADE_LIMIT);
-  const shortDeadline = eligibilityEnd(child.birthDate, RULES.SHORT_AGE_LIMIT, RULES.SHORT_GRADE_LIMIT);
-
-  const warnings = [];
-  if(leaveTotal > leaveLimit) warnings.push(`육아휴직이 한도(${fmtUnits(leaveLimit)})를 ${fmtUnits(leaveTotal - leaveLimit)} 넘었습니다.`);
-  if(shortTotal > shortLimit) warnings.push(`단축근무가 한도(${fmtUnits(shortLimit)})를 ${fmtUnits(shortTotal - shortLimit)} 넘었습니다. 육아휴직을 더 쓰면 단축 한도가 줄어듭니다.`);
-  if(leaveUses > RULES.LEAVE_MAX_USES) warnings.push(`육아휴직을 ${leaveUses}번 나눠 썼습니다(최대 ${RULES.LEAVE_MAX_USES}번).`);
-  leaves.filter(u => u.endDate > leaveDeadline).forEach(u =>
-    warnings.push(`육아휴직 ${fmtKDate(u.startDate)}~ 기간이 대상 연령 기한(${fmtKDate(leaveDeadline)})을 넘습니다.`));
-  shorts.filter(u => u.endDate > shortDeadline).forEach(u =>
-    warnings.push(`단축근무 ${fmtKDate(u.startDate)}~ 기간이 대상 연령 기한(${fmtKDate(shortDeadline)})을 넘습니다.`));
-  shorts.filter(u => spanUnits(u.startDate, u.endDate) < RULES.SHORT_MIN_MONTHS * 30).forEach(u =>
-    warnings.push(`단축근무 ${fmtKDate(u.startDate)}~ 기간이 ${RULES.SHORT_MIN_MONTHS}개월 미만입니다.`));
-
-  return {
-    leaves, shorts,
-    leaveLimit, leaveTotal, leaveDone, leaveRemain: leaveLimit - leaveTotal, leaveUses,
-    shortLimit, shortTotal, shortDone, shortRemain: shortLimit - shortTotal,
-    leaveDeadline, shortDeadline,
-    leaveExpired: leaveDeadline < TODAY, shortExpired: shortDeadline < TODAY,
-    warnings
-  };
-}
-
-function usageState(u){
-  if(u.endDate < TODAY) return 'done';
-  if(u.startDate > TODAY) return 'plan';
-  return 'now';
-}
-
-function summarizeEmployee(emp){
-  const kids = childrenOf(emp.id);
-  const all = kids.flatMap(c => usagesOf(c.id).map(u => ({ ...u, child: c })));
-  const current = all.find(u => usageState(u) === 'now') || null;
-  const upcoming = all.filter(u => usageState(u) === 'plan').sort((a, b) => a.startDate < b.startDate ? -1 : 1)[0] || null;
-  const summaries = kids.map(c => ({ child: c, s: summarizeChild(c) }));
-  const warnCount = summaries.reduce((a, x) => a + x.s.warnings.length, 0);
-  return { kids, current, upcoming, summaries, warnCount };
-}
-
-/* =========================================================
-   서버 통신
-   ========================================================= */
-async function api(action, payload){
-  if(DEMO) return demoApi(action, payload || {});
-  const res = await fetch(CONFIG.API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action, key: accessKey, ...(payload || {}) })
-  });
-  const json = await res.json();
-  if(!json.ok){
-    if(json.error === 'unauthorized'){ setKey(''); showGate('접근 키가 맞지 않습니다.'); }
-    throw new Error(json.error);
-  }
-  return json.data;
-}
-function errText(err){
-  const code = String(err && err.message || err);
-  return ERROR_MESSAGES[code] || (/fetch|network|json/i.test(code)
-    ? '서버에 연결하지 못했습니다. 사내망에서 script.google.com 이 막혀 있지 않은지 확인하세요.'
-    : `처리하지 못했습니다 (${code})`);
-}
-
-function getKey(){ try{ return sessionStorage.getItem('leaveKey') || ''; }catch(e){ return accessKey; } }
-function setKey(k){ accessKey = k; try{ k ? sessionStorage.setItem('leaveKey', k) : sessionStorage.removeItem('leaveKey'); }catch(e){} }
-
-let loading = null;
-async function load(){
-  if(loading) return loading;
-  const btn = document.getElementById('refreshBtn');
-  btn.disabled = true;
-  loading = (async () => {
-    try{
-      const data = await api('loadAll');
-      state = {
-        employees: data.employees || [],
-        children: (data.children || []).map(c => ({ ...c, extended: c.extended === true })),
-        usages: data.usages || []
-      };
-      hideError();
-      document.getElementById('gate').classList.add('hidden');
-      document.getElementById('main').classList.remove('hidden');
-      render();
-    }catch(err){
-      if(String(err.message) !== 'unauthorized') showError(errText(err));
-    }finally{
-      btn.disabled = false;
-      loading = null;
-    }
-  })();
-  return loading;
-}
-
-/* =========================================================
-   화면: 목록
-   ========================================================= */
 function render(){
-  const q = document.getElementById('search').value.trim().toLowerCase();
-  const rows = state.employees.map(emp => ({ emp, sum: summarizeEmployee(emp) }))
-    .filter(({ emp, sum }) => {
-      if(q){
-        const hay = [emp.name, emp.empid, emp.dept, emp.position, ...sum.kids.map(c => c.name)].join(' ').toLowerCase();
-        if(!hay.includes(q)) return false;
-      }
-      if(filter === 'leave') return sum.current && sum.current.type === '육아휴직';
-      if(filter === 'short') return sum.current && sum.current.type === '육아기단축';
-      if(filter === 'plan') return !!sum.upcoming;
-      if(filter === 'warn') return sum.warnCount > 0;
-      return true;
-    })
-    .sort((a, b) => a.emp.name.localeCompare(b.emp.name, 'ko'));
-
-  renderStats();
-
-  const wrap = document.getElementById('listWrap');
-  if(state.employees.length === 0){
-    wrap.innerHTML = `<div class="empty-state"><h3>등록된 직원이 없습니다</h3><p>오른쪽 위 <b>+ 직원 등록</b> 으로 시작하세요.</p></div>`;
-    return;
-  }
-  if(rows.length === 0){
-    wrap.innerHTML = `<div class="empty-state"><h3>조건에 맞는 직원이 없습니다</h3><p>검색어나 필터를 바꿔 보세요.</p></div>`;
-    return;
-  }
-
-  wrap.innerHTML = rows.map(({ emp, sum }) => employeeCard(emp, sum)).join('');
-}
-
-function statusCell(sum){
-  let html = '';
-  if(sum.current){
-    const cls = sum.current.type === '육아휴직' ? 'leave' : 'short';
-    const label = sum.current.type === '육아휴직' ? '육아휴직 중' : `단축 중 (주 ${sum.current.hoursPerWeek}h)`;
-    html += `<span class="pill ${cls}">${escapeHtml(label)}</span> <span class="soft">~ ${fmtKDate(sum.current.endDate)}</span>`;
-  } else if(sum.upcoming){
-    html += `<span class="pill plan">${escapeHtml(sum.upcoming.type === '육아휴직' ? '휴직 예정' : '단축 예정')}</span><span class="soft"> ${fmtKDate(sum.upcoming.startDate)} 부터</span>`;
-  } else {
-    html += `<span class="pill none">근무</span>`;
-  }
-  if(sum.warnCount) html += ` <span class="pill warn">확인 필요 ${sum.warnCount}</span>`;
-  return html;
-}
-
-function renderStats(){
-  let leave = 0, short = 0, ret = 0;
-  const soon = addDays(TODAY, 30);
-  state.employees.forEach(emp => {
-    const { current } = summarizeEmployee(emp);
-    if(!current) return;
-    if(current.type === '육아휴직') leave++; else short++;
-    if(current.endDate <= soon) ret++;
-  });
-  document.getElementById('statEmp').textContent = state.employees.length;
-  document.getElementById('statLeave').textContent = leave;
-  document.getElementById('statShort').textContent = short;
-  document.getElementById('statReturn').textContent = ret;
-}
-
-/* =========================================================
-   화면: 직원 카드 (직원 정보 + 자녀별 잔여·기간을 펼친 채로)
-   ========================================================= */
-function employeeCard(emp, sum){
-  const id = escapeHtml(emp.id);
-  const fact = (k, v) => v ? `<span><span class="k">${k}</span>${v}</span>` : '';
-  return `<section class="emp-card" data-emp="${id}" id="emp-${id}">
-    <div class="emp-head">
-      <div>
-        <div class="emp-title"><h3>${escapeHtml(emp.name)}</h3>${statusCell(sum)}</div>
-        <div class="emp-facts">
-          ${fact('사번', escapeHtml(emp.empid))}
-          ${fact('부서', escapeHtml(emp.dept))}
-          ${fact('직급', escapeHtml(emp.position))}
-          ${fact('입사일', emp.hireDate ? fmtKDate(emp.hireDate) : '')}
-          ${fact('메모', escapeHtml(emp.memo))}
-        </div>
-      </div>
-      <div class="row-actions">
-        <button class="btn small primary" data-act="addChild">+ 자녀 등록</button>
-        <button class="btn small" data-act="editEmp">수정</button>
-        <button class="btn small danger" data-act="delEmp">삭제</button>
-      </div>
-    </div>
-    ${sum.summaries.length ? sum.summaries.map(({ child, s }) => childCard(child, s)).join('')
-      : '<div class="no-child">등록된 자녀가 없습니다. 육아휴직·단축근무는 자녀별로 기록하므로 먼저 <b>+ 자녀 등록</b> 을 해 주세요.</div>'}
-  </section>`;
-}
-
-function meter(kind, s, child){
-  const isLeave = kind === 'leave';
-  const limit = isLeave ? s.leaveLimit : s.shortLimit;
-  const total = isLeave ? s.leaveTotal : s.shortTotal;
-  const done = isLeave ? s.leaveDone : s.shortDone;
-  const remain = limit - total;
-  const expired = isLeave ? s.leaveExpired : s.shortExpired;
-  const deadline = isLeave ? s.leaveDeadline : s.shortDeadline;
-  const pct = v => Math.max(0, Math.min(100, limit ? v / limit * 100 : 0));
-  let foot = `사용 ${fmtUnits(done)}`;
-  if(total > done) foot += ` · 예정 ${fmtUnits(total - done)}`;
-  foot += ` / 한도 ${fmtUnits(limit)}`;
-  if(isLeave){
-    foot += `<br>사용 횟수 ${s.leaveUses}/${RULES.LEAVE_MAX_USES}번`;
-    if(child.extended) foot += ` · 6개월 추가(${escapeHtml(child.extendReason)})`;
-  } else {
-    const bonus = limit - RULES.SHORT_BASE_MONTHS * 30;
-    foot += `<br>기본 1년${bonus ? ` + 미사용 육아휴직 가산 ${fmtUnits(bonus)}` : ''}`;
-  }
-  foot += `<br>대상 기한 ${fmtKDate(deadline)}${expired ? ' <b>(지남)</b>' : ''}`;
-  return `<div class="meter ${kind}">
-    <div class="m-title"><span>${isLeave ? '육아휴직' : '육아기 단축근무'} 잔여</span></div>
-    <div class="m-remain ${remain < 0 ? 'neg' : ''}">${expired && remain >= 0 ? '<span style="font-size:15px;">대상 기한 지남</span>' : fmtUnits(remain)}</div>
-    <div class="bar"><span class="done" style="width:${pct(done)}%"></span><span class="plan" style="width:${pct(total) - pct(done)}%"></span></div>
-    <div class="m-foot">${foot}</div>
-  </div>`;
-}
-
-function childCard(child, s){
-  const us = [...s.leaves, ...s.shorts].sort((a, b) => a.startDate < b.startDate ? -1 : 1);
-  const stateLabel = { done: ['done', '종료'], now: ['', '진행 중'], plan: ['plan', '예정'] };
-  return `<div class="child-card">
-    <div class="child-top">
-      <div>
-        <div class="child-name">${escapeHtml(child.name)}</div>
-        <div class="child-meta">${fmtKDate(child.birthDate)} 생 · ${escapeHtml(ageText(child.birthDate))}${child.memo ? ' · ' + escapeHtml(child.memo) : ''}</div>
-      </div>
-      <div class="row-actions">
-        <button class="btn small primary" data-act="addUsage" data-child="${escapeHtml(child.id)}">+ 기간 추가</button>
-        <button class="btn small" data-act="editChild" data-child="${escapeHtml(child.id)}">수정</button>
-        <button class="btn small danger" data-act="delChild" data-child="${escapeHtml(child.id)}">삭제</button>
-      </div>
-    </div>
-    <div class="meters">${meter('leave', s, child)}${meter('short', s, child)}</div>
-    ${s.warnings.length ? `<ul class="warns">${s.warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('')}</ul>` : ''}
-    ${us.length ? `<div class="table-wrap"><table class="usage-table">
-      <thead><tr><th>구분</th><th>기간</th><th>일수</th><th>근로시간</th><th>상태</th><th>메모</th><th></th></tr></thead>
-      <tbody>${us.map(u => {
-        const st = usageState(u);
-        const pill = st === 'now' ? (u.type === '육아휴직' ? 'leave' : 'short') : stateLabel[st][0];
-        return `<tr>
-          <td class="nowrap">${escapeHtml(u.type === '육아기단축' ? '단축근무' : u.type)}</td>
-          <td class="nowrap">${fmtKDate(u.startDate)} ~ ${fmtKDate(u.endDate)}</td>
-          <td class="nowrap">${fmtUnits(spanUnits(u.startDate, u.endDate))}</td>
-          <td class="nowrap">${u.type === '육아기단축' ? `주 ${escapeHtml(u.hoursPerWeek)}시간` : '-'}</td>
-          <td><span class="pill ${pill}">${stateLabel[st][1]}</span></td>
-          <td class="soft">${escapeHtml(u.memo)}</td>
-          <td><div class="row-actions">
-            <button class="btn small" data-act="editUsage" data-usage="${escapeHtml(u.id)}">수정</button>
-            <button class="btn small danger" data-act="delUsage" data-usage="${escapeHtml(u.id)}">삭제</button>
-          </div></td>
-        </tr>`; }).join('')}</tbody></table></div>`
-      : '<div class="soft" style="margin-top:10px;">아직 등록된 기간이 없습니다.</div>'}
-  </div>`;
-}
-
-/* =========================================================
-   입력 폼
-   ========================================================= */
-let formSubmit = null;
-
-function openForm(title, fieldsHtml, onSubmit, onInput){
-  const dlg = document.getElementById('formDlg');
-  dlg.innerHTML = `
-    <div class="dlg-head"><h2>${escapeHtml(title)}</h2><button class="dlg-close" data-act="closeForm" aria-label="닫기">×</button></div>
-    <form class="dlg-body" id="theForm" novalidate>
-      <div class="form-grid">${fieldsHtml}</div>
-      <div id="formPreview" class="form-preview hidden"></div>
-      <div id="formError" class="form-error hidden"></div>
-      <div class="form-actions">
-        <button type="button" class="btn" data-act="closeForm">취소</button>
-        <button type="submit" class="btn primary" id="formSave">저장</button>
-      </div>
-    </form>`;
-  formSubmit = onSubmit;
-  const form = dlg.querySelector('#theForm');
-  if(onInput){ form.addEventListener('input', () => onInput(form)); form.addEventListener('change', () => onInput(form)); onInput(form); }
-  dlg.showModal();
-  const first = form.querySelector('input:not([type=checkbox]), select');
-  if(first) first.focus();
-}
-
-function field(name, label, value, opts = {}){
-  const req = opts.required ? ' <span class="req">*</span>' : '';
-  const cls = opts.full ? 'fg full' : 'fg';
-  const hint = opts.hint ? `<div class="hint">${opts.hint}</div>` : '';
-  let input;
-  if(opts.options){
-    input = `<select name="${name}">${opts.options.map(o => `<option value="${escapeHtml(o)}"${o === value ? ' selected' : ''}>${escapeHtml(o || '선택')}</option>`).join('')}</select>`;
-  } else if(opts.textarea){
-    input = `<textarea name="${name}" maxlength="500">${escapeHtml(value)}</textarea>`;
-  } else {
-    input = `<input name="${name}" type="${opts.type || 'text'}" value="${escapeHtml(value)}"${opts.attrs || ''}>`;
-  }
-  return `<div class="${cls}" data-field="${name}"><label>${label}${req}</label>${input}${hint}</div>`;
-}
-
-const formValues = form => Object.fromEntries(new FormData(form).entries());
-
-async function submitForm(){
-  const dlg = document.getElementById('formDlg');
-  const form = dlg.querySelector('#theForm');
-  const errBox = dlg.querySelector('#formError');
-  const saveBtn = dlg.querySelector('#formSave');
-  errBox.classList.add('hidden');
-  saveBtn.disabled = true;
-  saveBtn.textContent = '저장 중...';
-  try{
-    await formSubmit(formValues(form), form);
-    dlg.close();
-  }catch(err){
-    errBox.textContent = errText(err);
-    errBox.classList.remove('hidden');
-  }finally{
-    saveBtn.disabled = false;
-    saveBtn.textContent = '저장';
-  }
-}
-
-function employeeForm(emp){
-  emp = emp || {};
-  openForm(emp.id ? '직원 정보 수정' : '직원 등록',
-    field('name', '이름', emp.name, { required: true, attrs: ' maxlength="20"' }) +
-    field('empid', '사번', emp.empid, { required: true, attrs: ' inputmode="numeric" maxlength="10"' }) +
-    field('dept', '부서', emp.dept, { attrs: ' maxlength="50"' }) +
-    field('position', '직급', emp.position, { attrs: ' maxlength="50"' }) +
-    field('hireDate', '입사일', emp.hireDate, { type: 'date' }) +
-    field('memo', '메모', emp.memo, { textarea: true, full: true }),
-    async v => {
-      const data = { id: emp.id || '', name: v.name.trim(), empid: v.empid.trim(), dept: v.dept.trim(), position: v.position.trim(), hireDate: v.hireDate, memo: v.memo.trim() };
-      validateEmployee(data);
-      const res = await api('saveEmployee', { data });
-      data.id = res.id;
-      upsertLocal('employees', data);
-      toast(emp.id ? '수정했습니다.' : '등록했습니다.');
-      render();
-      if(!emp.id){ const el = document.getElementById('emp-' + data.id); if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  const q = document.getElementById('plSearch').value.trim().toLowerCase();
+  const rows = [];
+  DATA.filter(emp => !q || [emp.name, emp.empid, emp.dept].join(' ').toLowerCase().includes(q))
+    .forEach(emp => {
+      const kids = emp.children.length ? emp.children : [null];
+      kids.forEach((child, i) => {
+        // 자녀가 여럿이면 직원 칸은 첫 줄에만 쓰고 세로로 합친다
+        const span = `rowspan="${kids.length}"`;
+        const empCells = i === 0 ? `<td ${span}>${esc(emp.name)}</td><td ${span}>${esc(emp.empid)}</td><td ${span}>${esc(emp.dept)}</td>` : '';
+        if(!child){ rows.push(`<tr>${empCells}<td colspan="5" class="pl-sub">등록된 자녀 없음</td></tr>`); return; }
+        const r = remaining(child);
+        rows.push(`<tr>${empCells}
+          <td>${esc(child.name)} <span class="pl-sub">(${shortDate(child.birthDate)})</span></td>
+          <td>${periods(child.leaves)}</td>${remainCell(r.leave)}
+          <td>${periods(child.shorts)}</td>${remainCell(r.short)}
+        </tr>`);
+      });
     });
+  document.getElementById('plBody').innerHTML = rows.join('') || '<tr><td colspan="8" class="pl-empty">조회 결과가 없습니다.</td></tr>';
 }
 
-function childForm(empId, child){
-  child = child || {};
-  openForm(child.id ? '자녀 정보 수정' : '자녀 등록',
-    field('name', '자녀 이름', child.name, { required: true, attrs: ' maxlength="20"' }) +
-    field('birthDate', '생년월일 (출산 예정일)', child.birthDate, { required: true, type: 'date' }) +
-    `<div class="fg full"><label class="check"><input type="checkbox" name="extended"${child.extended ? ' checked' : ''}> 육아휴직 6개월 추가 (총 1년 6개월)</label></div>` +
-    field('extendReason', '추가 사유', child.extendReason || '', { options: ['', ...EXTEND_REASONS], full: true,
-      hint: '부모 모두 같은 자녀로 3개월 이상 사용했거나, 한부모·중증 장애아동 부모인 경우' }) +
-    field('memo', '메모', child.memo, { textarea: true, full: true }),
-    async v => {
-      const data = { id: child.id || '', employeeId: empId, name: v.name.trim(), birthDate: v.birthDate,
-        extended: v.extended === 'on', extendReason: v.extended === 'on' ? v.extendReason : '', memo: v.memo.trim() };
-      validateChild(data);
-      const res = await api('saveChild', { data });
-      data.id = res.id;
-      upsertLocal('children', data);
-      toast(child.id ? '수정했습니다.' : '등록했습니다.');
-      render();
-    },
-    form => {
-      form.querySelector('[data-field=extendReason]').classList.toggle('hidden', !form.extended.checked);
-    });
-}
-
-function usageForm(childId, usage){
-  usage = usage || { type: '육아휴직' };
-  const child = byId(state.children, childId);
-  openForm(`${child.name} · ${usage.id ? '기간 수정' : '기간 추가'}`,
-    field('type', '구분', usage.type === '육아기단축' ? '육아기 단축근무' : '육아휴직', { required: true, options: ['육아휴직', '육아기 단축근무'], full: true }) +
-    field('startDate', '시작일', usage.startDate, { required: true, type: 'date' }) +
-    field('endDate', '종료일', usage.endDate, { required: true, type: 'date' }) +
-    field('hoursPerWeek', '단축 후 주 근로시간', usage.hoursPerWeek || 30, { type: 'number', attrs: ` min="${RULES.MIN_SHORT_HOURS}" max="${RULES.MAX_SHORT_HOURS}" step="1"`, hint: `주 ${RULES.MIN_SHORT_HOURS}~${RULES.MAX_SHORT_HOURS}시간` }) +
-    field('memo', '메모', usage.memo, { textarea: true, full: true, hint: '예: 연장 신청, 조기 복직, 휴직 사유 등' }),
-    async v => {
-      const data = usageFromForm(v, childId, usage.id);
-      validateUsage(data);
-      const res = await api('saveUsage', { data });
-      data.id = res.id;
-      upsertLocal('usages', data);
-      toast(usage.id ? '수정했습니다.' : '추가했습니다.');
-      render();
-    },
-    form => {
-      const v = formValues(form);
-      const isShort = v.type !== '육아휴직';
-      form.querySelector('[data-field=hoursPerWeek]').classList.toggle('hidden', !isShort);
-      const box = form.parentElement.querySelector('#formPreview') || document.getElementById('formPreview');
-      const data = usageFromForm(v, childId, usage.id);
-      if(!parseD(data.startDate) || !parseD(data.endDate) || data.endDate < data.startDate){ box.classList.add('hidden'); return; }
-      // 이 기간을 넣었을 때의 잔여를 미리 보여준다
-      const saved = state.usages;
-      state.usages = [...saved.filter(u => u.id !== usage.id), { ...data, id: data.id || '__preview' }];
-      const s = summarizeChild(child);
-      state.usages = saved;
-      box.innerHTML = `이 기간: <b>${fmtUnits(spanUnits(data.startDate, data.endDate))}</b>` +
-        `${data.type === '육아휴직' ? ` · 복직일 ${fmtKDate(addDays(data.endDate, 1))}` : ''}<br>` +
-        `저장 후 잔여 — 육아휴직 <b>${fmtUnits(s.leaveRemain)}</b> · 단축근무 <b>${fmtUnits(s.shortRemain)}</b>` +
-        (s.warnings.length ? `<br><span style="color:#92400E;">⚠ ${s.warnings.map(escapeHtml).join('<br>⚠ ')}</span>` : '');
-      box.classList.remove('hidden');
-    });
-}
-
-function usageFromForm(v, childId, id){
-  const type = v.type === '육아휴직' ? '육아휴직' : '육아기단축';
-  return { id: id || '', childId, type, startDate: v.startDate, endDate: v.endDate,
-    hoursPerWeek: type === '육아기단축' ? Number(v.hoursPerWeek) : '', memo: (v.memo || '').trim() };
-}
-
-/* 서버(LeaveCode.gs)와 같은 검증. 서버가 최종 판단하지만, 왕복 전에 먼저 걸러 준다. */
-function validateEmployee(d){
-  if(!d.name) throw new Error('missing_name');
-  if(d.name.length > 20) throw new Error('name_too_long');
-  if(!/^\d{1,10}$/.test(d.empid)) throw new Error('invalid_empid');
-  if(state.employees.some(e => e.empid === d.empid && e.id !== d.id)) throw new Error('duplicate_empid');
-  if(d.hireDate && !parseD(d.hireDate)) throw new Error('invalid_hire_date');
-}
-function validateChild(d){
-  if(!d.name) throw new Error('missing_name');
-  if(!parseD(d.birthDate)) throw new Error('invalid_birth_date');
-  if(d.extended && !EXTEND_REASONS.includes(d.extendReason)) throw new Error('invalid_extend_reason');
-}
-function validateUsage(d){
-  const child = byId(state.children, d.childId);
-  if(!child) throw new Error('child_not_found');
-  if(!USAGE_TYPES.includes(d.type)) throw new Error('invalid_type');
-  if(!parseD(d.startDate)) throw new Error('invalid_start_date');
-  if(!parseD(d.endDate)) throw new Error('invalid_end_date');
-  if(d.endDate < d.startDate) throw new Error('end_before_start');
-  if(d.startDate < child.birthDate) throw new Error('before_birth');
-  if(d.type === '육아기단축' && !(d.hoursPerWeek >= RULES.MIN_SHORT_HOURS && d.hoursPerWeek <= RULES.MAX_SHORT_HOURS)) throw new Error('invalid_hours');
-  const siblings = new Set(childrenOf(child.employeeId).map(c => c.id));
-  if(state.usages.some(u => u.id !== d.id && siblings.has(u.childId) && u.startDate <= d.endDate && d.startDate <= u.endDate)) throw new Error('overlap');
-}
-
-function upsertLocal(key, obj){
-  const list = state[key];
-  const i = list.findIndex(x => x.id === obj.id);
-  if(i === -1) list.push(obj); else list[i] = { ...list[i], ...obj };
-}
-
-async function removeItem(kind, id, message){
-  if(!confirm(message)) return;
-  try{
-    if(kind === 'emp'){
-      await api('deleteEmployee', { id });
-      const kids = new Set(childrenOf(id).map(c => c.id));
-      state.usages = state.usages.filter(u => !kids.has(u.childId));
-      state.children = state.children.filter(c => c.employeeId !== id);
-      state.employees = state.employees.filter(e => e.id !== id);
-    } else if(kind === 'child'){
-      await api('deleteChild', { id });
-      state.usages = state.usages.filter(u => u.childId !== id);
-      state.children = state.children.filter(c => c.id !== id);
-    } else {
-      await api('deleteUsage', { id });
-      state.usages = state.usages.filter(u => u.id !== id);
-    }
-    toast('삭제했습니다.');
-    render();
-  }catch(err){
-    alert(errText(err));
-  }
-}
-
-/* =========================================================
-   CSV — 자녀 1명당 한 줄
-   ========================================================= */
-function csvCell(v){
-  let s = String(v ?? '');
-  if(/^[=+\-@]/.test(s)) s = "'" + s; // 엑셀 수식 실행 방지
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-function exportCsv(){
-  const head = ['이름','사번','부서','직급','입사일','현재 상태','자녀 이름','생년월일','6개월 추가',
-    '육아휴직 한도','육아휴직 사용','육아휴직 예정','육아휴직 잔여','육아휴직 횟수','육아휴직 대상 기한',
-    '단축 한도','단축 사용','단축 예정','단축 잔여','단축 대상 기한','사용 기간','확인 필요'];
-  const lines = [head];
-  [...state.employees].sort((a, b) => a.name.localeCompare(b.name, 'ko')).forEach(emp => {
-    const sum = summarizeEmployee(emp);
-    const status = sum.current ? (sum.current.type === '육아휴직' ? '육아휴직 중' : '단축 중') : (sum.upcoming ? '예정' : '근무');
-    const base = [emp.name, emp.empid, emp.dept, emp.position, emp.hireDate, status];
-    if(!sum.kids.length){ lines.push([...base, ...Array(head.length - base.length).fill('')]); return; }
-    sum.summaries.forEach(({ child, s }) => {
-      const periods = [...s.leaves, ...s.shorts].sort((a, b) => a.startDate < b.startDate ? -1 : 1)
-        .map(u => `${u.type === '육아휴직' ? '휴직' : '단축(주' + u.hoursPerWeek + 'h)'} ${u.startDate}~${u.endDate}`).join(' / ');
-      lines.push([...base, child.name, child.birthDate, child.extended ? child.extendReason : '',
-        fmtUnits(s.leaveLimit), fmtUnits(s.leaveDone), fmtUnits(s.leaveTotal - s.leaveDone), fmtUnits(s.leaveRemain), s.leaveUses, s.leaveDeadline,
-        fmtUnits(s.shortLimit), fmtUnits(s.shortDone), fmtUnits(s.shortTotal - s.shortDone), fmtUnits(s.shortRemain), s.shortDeadline,
-        periods, s.warnings.join(' / ')]);
-    });
-  });
-  const csv = '﻿' + lines.map(r => r.map(csvCell).join(',')).join('\r\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  a.download = `육아휴직_현황_${TODAY}.csv`;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-
-/* =========================================================
-   예시 데이터 (CONFIG.API_URL 이 비어 있을 때만). 이름은 모두 가상.
-   ========================================================= */
-function demoData(){
-  const ago = (m, d = 0) => addDays(addMonths(TODAY, -m), -d);
-  const later = (m, d = 0) => addDays(addMonths(TODAY, m), d);
-  const E = (id, empid, name, dept, position, hireDate) => ({ id, empid, name, dept, position, hireDate, memo: '' });
-  const C = (id, employeeId, name, birthDate, extendReason = '') => ({ id, employeeId, name, birthDate, extended: !!extendReason, extendReason, memo: '' });
-  const U = (id, childId, type, startDate, endDate, hoursPerWeek = '', memo = '') => ({ id, childId, type, startDate, endDate, hoursPerWeek, memo });
-  return {
-    employees: [
-      E('e1', '210034', '김하늘', '경영지원팀', '대리', '2019-03-04'),
-      E('e2', '180112', '이준호', '영업1팀', '과장', '2016-07-01'),
-      E('e3', '220871', '박서연', '마케팅팀', '사원', '2022-01-10'),
-      E('e4', '150420', '최민재', '재무팀', '차장', '2012-09-17')
-    ],
-    children: [
-      C('c1', 'e1', '김다온', ago(14)),
-      C('c2', 'e2', '이시우', ago(30)),
-      C('c3', 'e2', '이서아', ago(78)),
-      C('c4', 'e3', '박로아', later(1), ''),
-      C('c5', 'e4', '최윤', ago(100), '부모 모두 3개월 이상 사용')
-    ],
-    usages: [
-      U('u1', 'c1', '육아휴직', ago(11), later(1, -1), '', '출산휴가 후 이어서'),
-      U('u2', 'c2', '육아휴직', ago(28), ago(22, 1)),
-      U('u3', 'c2', '육아기단축', ago(4), later(8, -1), 30),
-      U('u4', 'c3', '육아휴직', ago(70), ago(66, 1)),
-      U('u5', 'c4', '육아휴직', later(4), later(16, -1), '', '출산휴가 종료 후 시작 예정'),
-      U('u6', 'c5', '육아휴직', ago(90), ago(78, 1)),
-      U('u7', 'c5', '육아기단축', ago(60), ago(48, 1), 25)
-    ]
-  };
-}
-let demoState = null, demoSeq = 100;
-function demoApi(action, p){
-  return new Promise((resolve, reject) => setTimeout(() => {
-    try{
-      if(!demoState) demoState = demoData();
-      if(action === 'loadAll') return resolve(JSON.parse(JSON.stringify(demoState)));
-      const save = (key, d) => {
-        const id = d.id || 'n' + (demoSeq++);
-        const list = demoState[key]; const i = list.findIndex(x => x.id === id);
-        const obj = { ...d, id }; if(i === -1) list.push(obj); else list[i] = obj;
-        return { id };
-      };
-      if(action === 'saveEmployee') return resolve(save('employees', p.data));
-      if(action === 'saveChild') return resolve(save('children', p.data));
-      if(action === 'saveUsage') return resolve(save('usages', p.data));
-      if(action === 'deleteEmployee'){
-        const kids = new Set(demoState.children.filter(c => c.employeeId === p.id).map(c => c.id));
-        demoState.usages = demoState.usages.filter(u => !kids.has(u.childId));
-        demoState.children = demoState.children.filter(c => c.employeeId !== p.id);
-        demoState.employees = demoState.employees.filter(e => e.id !== p.id);
-        return resolve({});
-      }
-      if(action === 'deleteChild'){
-        demoState.usages = demoState.usages.filter(u => u.childId !== p.id);
-        demoState.children = demoState.children.filter(c => c.id !== p.id);
-        return resolve({});
-      }
-      if(action === 'deleteUsage'){ demoState.usages = demoState.usages.filter(u => u.id !== p.id); return resolve({}); }
-      reject(new Error('unknown_action'));
-    }catch(e){ reject(e); }
-  }, 150));
-}
-
-/* =========================================================
-   기타 UI
-   ========================================================= */
-function showError(msg){ const b = document.getElementById('errorBanner'); b.textContent = msg; b.classList.remove('hidden'); }
-function hideError(){ document.getElementById('errorBanner').classList.add('hidden'); }
-function showGate(msg){
-  document.getElementById('main').classList.add('hidden');
-  document.getElementById('gate').classList.remove('hidden');
-  if(msg) showError(msg);
-  document.getElementById('gateKey').focus();
-}
-let toastTimer = null;
-function toast(msg){
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.remove('hidden');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add('hidden'), 2200);
-}
-
-document.getElementById('refreshBtn').addEventListener('click', load);
-document.getElementById('exportBtn').addEventListener('click', exportCsv);
-document.getElementById('addEmpBtn').addEventListener('click', () => {
-  if(document.getElementById('main').classList.contains('hidden')) return;
-  employeeForm();
-});
-document.getElementById('search').addEventListener('input', render);
-document.getElementById('filterChips').addEventListener('click', e => {
-  const b = e.target.closest('button[data-filter]'); if(!b) return;
-  filter = b.dataset.filter;
-  document.querySelectorAll('#filterChips button').forEach(x => x.classList.toggle('active', x === b));
-  render();
-});
-document.getElementById('gateForm').addEventListener('submit', e => {
-  e.preventDefault();
-  const k = document.getElementById('gateKey').value.trim();
-  if(!k) return;
-  setKey(k);
-  hideError();
-  load();
-});
-
-document.getElementById('listWrap').addEventListener('click', e => {
-  const b = e.target.closest('[data-act]'); if(!b) return;
-  const card = b.closest('[data-emp]'); if(!card) return;
-  const emp = byId(state.employees, card.dataset.emp);
-  const act = b.dataset.act;
-  if(act === 'editEmp') employeeForm(emp);
-  else if(act === 'delEmp') removeItem('emp', emp.id, `${emp.name} 직원과 자녀·사용 기록을 모두 삭제할까요?\n시트에서 행이 지워지며, 되돌리려면 구글 시트의 버전 기록을 써야 합니다.`);
-  else if(act === 'addChild') childForm(emp.id);
-  else if(act === 'editChild') childForm(emp.id, byId(state.children, b.dataset.child));
-  else if(act === 'delChild'){ const c = byId(state.children, b.dataset.child); removeItem('child', c.id, `자녀 ${c.name} 과(와) 사용 기록을 모두 삭제할까요?`); }
-  else if(act === 'addUsage') usageForm(b.dataset.child);
-  else if(act === 'editUsage'){ const u = byId(state.usages, b.dataset.usage); usageForm(u.childId, u); }
-  else if(act === 'delUsage'){ const u = byId(state.usages, b.dataset.usage); removeItem('usage', u.id, `${u.type === '육아휴직' ? '육아휴직' : '단축근무'} ${u.startDate} ~ ${u.endDate} 기록을 삭제할까요?`); }
-});
-document.getElementById('formDlg').addEventListener('click', e => {
-  if(e.target === e.currentTarget || e.target.closest('[data-act=closeForm]')) e.currentTarget.close();
-});
-document.getElementById('formDlg').addEventListener('submit', e => { e.preventDefault(); submitForm(); });
-
-// 시작
-if(DEMO){
-  document.getElementById('demoBanner').classList.remove('hidden');
-  load();
-} else {
-  accessKey = getKey();
-  if(accessKey) load(); else showGate();
-}
+document.getElementById('plSearch').addEventListener('input', render);
+render();
 </script>
 </body>
 </html>
