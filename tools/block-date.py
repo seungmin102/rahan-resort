@@ -66,6 +66,12 @@ def consolidate(branch, room):
     """
     usable_map = branch_roomtypes()
     merged = []
+    # 지점 전체가 막힌 날에 남아 있는 타입별 마감은 의미가 없으니 지운다.
+    # (타입 하나만 막혀 있던 날을 나중에 지점 전체로 막으면 찌꺼기가 남는다)
+    for b in branch:
+        for r in ROOMS:
+            for d in list(room.get(b, {}).get(r, [])):
+                if d in branch[b]: room[b][r].remove(d)
     for b in branch:
         usable = usable_map.get(b, ROOMS)
         full = [d for d in set().union(*[set(room.get(b, {}).get(r, [])) for r in ROOMS])
