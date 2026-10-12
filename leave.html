@@ -40,8 +40,9 @@
     </table>
   </div>
   <div class="pl-note">
-    잔여 = 한도 − 등록된 기간(예정 포함). 육아휴직 한도는 자녀당 1년이며 법정추가를 쓴 자녀는 1년 6개월,
-    단축근무 한도는 1년 + 쓰지 않은 육아휴직의 2배입니다. <b>약정</b> 휴직은 표시만 하고 법정 잔여에서 빼지 않습니다. 30일을 1개월로 셉니다.<br>
+    잔여 = 한도 − 등록된 기간(예정 포함), 30일을 1개월로 셉니다.<br>
+    육아휴직 한도(자녀당): 법정 1년 · 법정연장 6개월(부부 모두 사용·한부모·중증 장애아동 대상자만) · 회사 약정 6개월.<br>
+    단축근무 한도(자녀당): 법정 1년(유급) + 법정 육아휴직 미사용 기간 × 2, 이를 다 쓴 뒤 회사 약정 1년(무급).<br>
     <span class="pl-guess">*</span> 자녀가 2명 이상인데 DB에 자녀 구분이 없는 기간 — 시작일 당시 가장 최근에 태어난 자녀로 자동 배정했습니다.
   </div>
 </div>
@@ -74,24 +75,25 @@ const DATA = [
     children: [{ name: '최윤', birthDate: '2018-06-07' }],
     records: [
       { type: '육아휴직', start: '2019-04-07', end: '2020-04-06' },
-      { type: '육아휴직(법정추가)', start: '2020-04-07', end: '2020-07-06' },
+      { type: '육아휴직(법정연장)', start: '2020-04-07', end: '2020-07-06' },
       { type: '육아휴직(약정)', start: '2020-07-07', end: '2020-10-06' },
       { type: '육아기단축', start: '2021-10-07', end: '2022-10-06' }
     ]}
 ];
 
-/* DB 구분 값 → 계산상 의미. DB 에 다른 이름이 있으면 여기에 추가한다.
-   statutory: 법정 육아휴직 한도에서 뺀다 / extra: 6개월 추가 대상임을 뜻한다(한도 1년 6개월)
-   agreed: 회사 약정 휴직 — 표에는 보이지만 법정 잔여에서 빼지 않는다 / short: 육아기 단축근무 */
+/* DB 구분 값 → 어느 한도에서 빼는지. DB 에 다른 이름이 있으면 여기에 추가한다. */
 const TYPES = {
-  '육아휴직':           { kind: 'leave', statutory: true },
-  '육아휴직(법정추가)': { kind: 'leave', statutory: true, extra: true, label: '법정추가' },
-  '육아휴직(약정)':     { kind: 'leave', agreed: true, label: '약정' },
+  '육아휴직':           { kind: 'leave', bucket: 'legal' },
+  '육아휴직(법정연장)': { kind: 'leave', bucket: 'ext', label: '법정연장' },
+  '육아휴직(법정추가)': { kind: 'leave', bucket: 'ext', label: '법정연장' }, // 같은 뜻의 다른 이름
+  '육아휴직(약정)':     { kind: 'leave', bucket: 'agreed', label: '약정' },
   '육아기단축':         { kind: 'short' }
 };
 
-/* 법정 기준 (2025.2.23. 시행). 법이 바뀌면 여기만 고친다. */
-const LEAVE_MONTHS = 12, LEAVE_EXTENDED_MONTHS = 18, SHORT_MONTHS = 12, SHORT_BONUS_RATE = 2;
+/* 한도 (개월). 회사 규정이나 법이 바뀌면 여기만 고친다.
+   육아휴직: 법정 1년 / 법정연장 6개월(부부 모두 사용·한부모·중증 장애아동 대상자만) / 회사 약정 6개월
+   단축근무: 법정 1년(유급) + 법정 육아휴직 미사용 기간 × 2 + 회사 약정 1년(무급) */
+const LIMIT = { leaveLegal: 12, leaveExt: 6, leaveAgreed: 6, shortLegal: 12, shortAgreed: 12, shortBonusRate: 2 };
 
 /* 날짜는 UTC 로 다뤄 시간대 영향을 없앤다 */
 const DAY = 86400000;
@@ -149,12 +151,24 @@ function splitByChild(emp){
 }
 
 function remaining(recs){
-  const used = list => list.reduce((sum, r) => sum + length(r.start, r.end), 0);
-  const statutoryUsed = used(recs.filter(r => r.t.statutory));
-  const shortUsed = used(recs.filter(r => r.t.kind === 'short'));
-  const leaveLimit = (recs.some(r => r.t.extra) ? LEAVE_EXTENDED_MONTHS : LEAVE_MONTHS) * 30;
-  const shortLimit = SHORT_MONTHS * 30 + SHORT_BONUS_RATE * Math.max(0, LEAVE_MONTHS * 30 - statutoryUsed);
-  return { leave: leaveLimit - statutoryUsed, short: shortLimit - shortUsed };
+  const used = f => recs.filter(f).reduce((sum, r) => sum + length(r.start, r.end), 0);
+  const legalUsed = used(r => r.t.bucket === 'legal');
+  const shortUsed = used(r => r.t.kind === 'short');
+  // 단축은 법정분(1년 + 미사용 육아휴직 × 2)을 먼저 쓰고, 넘는 만큼 회사 약정 1년에서 뺀다
+  const bonus = LIMIT.shortBonusRate * Math.max(0, LIMIT.leaveLegal * 30 - legalUsed);
+  const shortLegal = LIMIT.shortLegal * 30 + bonus;
+  return {
+    leave: [
+      ['법정', LIMIT.leaveLegal * 30 - legalUsed],
+      ['법정연장', LIMIT.leaveExt * 30 - used(r => r.t.bucket === 'ext')],
+      ['약정', LIMIT.leaveAgreed * 30 - used(r => r.t.bucket === 'agreed')]
+    ],
+    short: [
+      ['법정', shortLegal - Math.min(shortUsed, shortLegal)],
+      ['약정', LIMIT.shortAgreed * 30 - Math.max(0, shortUsed - shortLegal)]
+    ],
+    bonus
+  };
 }
 
 const periods = list => list.length ? list.map(r =>
@@ -162,7 +176,8 @@ const periods = list => list.length ? list.map(r =>
   (r.t.label ? ` <span class="pl-sub">(${esc(r.t.label)})</span>` : '') +
   (r.guessed ? ' <span class="pl-guess" title="DB에 자녀 구분이 없어 자동으로 정한 자녀입니다">*</span>' : '')
 ).join('<br>') : '-';
-const remainCell = u => `<td class="pl-num${u < 0 ? ' pl-neg' : ''}">${fmtLength(u)}</td>`;
+const remainCell = (lines, foot) => `<td class="pl-num">${lines.map(([label, u]) =>
+  `<span class="pl-sub">${label}</span> <span class="${u < 0 ? 'pl-neg' : ''}">${fmtLength(u)}</span>`).join('<br>')}${foot ? `<br><span class="pl-sub">${foot}</span>` : ''}</td>`;
 
 function render(){
   const q = document.getElementById('plSearch').value.trim().toLowerCase();
@@ -180,7 +195,7 @@ function render(){
         rows.push(`<tr>${empCells}
           <td>${esc(child.name)} <span class="pl-sub">(${shortDate(child.birthDate)})</span></td>
           <td>${periods(recs.filter(x => x.t.kind === 'leave'))}</td>${remainCell(r.leave)}
-          <td>${periods(recs.filter(x => x.t.kind === 'short'))}</td>${remainCell(r.short)}
+          <td>${periods(recs.filter(x => x.t.kind === 'short'))}</td>${remainCell(r.short, r.bonus ? `법정에 미사용 휴직 가산 ${fmtLength(r.bonus)} 포함` : '')}
         </tr>`);
       });
     });
