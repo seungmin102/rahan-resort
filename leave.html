@@ -19,6 +19,7 @@
   #parental-leave .pl-neg{ color: #DC2626; font-weight: 700; }
   #parental-leave .pl-sub{ color: #78716C; font-size: 12px; }
   #parental-leave .pl-note{ color: #78716C; font-size: 12px; margin-top: 8px; line-height: 1.6; }
+  #parental-leave .pl-guess{ color: #D94E0C; font-weight: 700; cursor: help; }
   #parental-leave .pl-empty{ text-align: center; color: #78716C; padding: 24px; }
 </style>
 </head>
@@ -39,35 +40,55 @@
     </table>
   </div>
   <div class="pl-note">
-    잔여 = 한도 − 등록된 기간(예정 포함). 육아휴직 한도는 자녀당 1년(6개월 추가 대상은 1년 6개월),
-    단축근무 한도는 1년 + 쓰지 않은 육아휴직의 2배입니다. 30일을 1개월로 셉니다.
+    잔여 = 한도 − 등록된 기간(예정 포함). 육아휴직 한도는 자녀당 1년이며 법정추가를 쓴 자녀는 1년 6개월,
+    단축근무 한도는 1년 + 쓰지 않은 육아휴직의 2배입니다. <b>약정</b> 휴직은 표시만 하고 법정 잔여에서 빼지 않습니다. 30일을 1개월로 셉니다.<br>
+    <span class="pl-guess">*</span> 자녀가 2명 이상인데 DB에 자녀 구분이 없는 기간 — 시작일 당시 가장 최근에 태어난 자녀로 자동 배정했습니다.
   </div>
 </div>
 
 <script>
 /* =========================================================
-   데이터 — 사내 시스템에서 이 형식으로 채워 주면 된다.
-   날짜는 'YYYY-MM-DD'. 기간은 [시작일, 종료일] (양 끝 포함).
-   extended: 육아휴직 6개월 추가 대상(부모 모두 3개월 이상 사용, 한부모, 중증 장애아동 부모).
-   아래는 화면 확인용 가상 데이터.
+   데이터 — 회사 DB 에서 이 형식으로 채워 주면 된다. 아래는 화면 확인용 가상 데이터.
+   - 날짜는 'YYYY-MM-DD', 기간은 시작일·종료일 모두 포함.
+   - records 는 직원 단위 휴직·단축 기록. type 은 DB 의 구분 값 그대로(아래 TYPES 참고).
+   - DB 에 어느 자녀 것인지 없으면 child 를 비워 둔다 → 화면이 자동으로 정한다(assignChild 참고).
+     알면 child: '자녀 이름' 을 넣으면 그대로 따른다.
+   - 자녀마다 같은 기간이 한 줄씩 중복돼 나와도 된다. 같은 구분·기간은 하나로 합친다.
    ========================================================= */
 const DATA = [
-  { name: '김하늘', empid: '210034', dept: '경영지원팀', children: [
-    { name: '김다온', birthDate: '2025-08-07', extended: false,
-      leaves: [['2025-11-07', '2026-11-06']], shorts: [] }
-  ]},
-  { name: '이준호', empid: '180112', dept: '영업1팀', children: [
-    { name: '이서아', birthDate: '2020-04-07', extended: false,
-      leaves: [['2020-12-07', '2021-04-06']], shorts: [] },
-    { name: '이시우', birthDate: '2024-04-07', extended: false,
-      leaves: [['2024-06-07', '2024-12-06']], shorts: [['2026-06-07', '2027-06-06']] }
-  ]},
-  { name: '박서연', empid: '220871', dept: '마케팅팀', children: [] },
-  { name: '최민재', empid: '150420', dept: '재무팀', children: [
-    { name: '최윤', birthDate: '2018-06-07', extended: true,
-      leaves: [['2019-04-07', '2020-04-06']], shorts: [['2021-10-07', '2022-10-06']] }
-  ]}
+  { name: '김하늘', empid: '210034', dept: '경영지원팀',
+    children: [{ name: '김다온', birthDate: '2025-08-07' }],
+    records: [
+      { type: '육아휴직', start: '2025-11-07', end: '2026-11-06' }
+    ]},
+  { name: '이준호', empid: '180112', dept: '영업1팀',
+    children: [{ name: '이서아', birthDate: '2020-04-07' }, { name: '이시우', birthDate: '2024-04-07' }],
+    records: [
+      { type: '육아휴직', start: '2020-12-07', end: '2021-04-06' },
+      { type: '육아휴직', start: '2024-06-07', end: '2024-12-06' },
+      { type: '육아휴직', start: '2024-06-07', end: '2024-12-06' }, // 자녀 2명이라 DB 에서 두 줄로 나온 경우
+      { type: '육아기단축', start: '2026-06-07', end: '2027-06-06' }
+    ]},
+  { name: '박서연', empid: '220871', dept: '마케팅팀', children: [], records: [] },
+  { name: '최민재', empid: '150420', dept: '재무팀',
+    children: [{ name: '최윤', birthDate: '2018-06-07' }],
+    records: [
+      { type: '육아휴직', start: '2019-04-07', end: '2020-04-06' },
+      { type: '육아휴직(법정추가)', start: '2020-04-07', end: '2020-07-06' },
+      { type: '육아휴직(약정)', start: '2020-07-07', end: '2020-10-06' },
+      { type: '육아기단축', start: '2021-10-07', end: '2022-10-06' }
+    ]}
 ];
+
+/* DB 구분 값 → 계산상 의미. DB 에 다른 이름이 있으면 여기에 추가한다.
+   statutory: 법정 육아휴직 한도에서 뺀다 / extra: 6개월 추가 대상임을 뜻한다(한도 1년 6개월)
+   agreed: 회사 약정 휴직 — 표에는 보이지만 법정 잔여에서 빼지 않는다 / short: 육아기 단축근무 */
+const TYPES = {
+  '육아휴직':           { kind: 'leave', statutory: true },
+  '육아휴직(법정추가)': { kind: 'leave', statutory: true, extra: true, label: '법정추가' },
+  '육아휴직(약정)':     { kind: 'leave', agreed: true, label: '약정' },
+  '육아기단축':         { kind: 'short' }
+};
 
 /* 법정 기준 (2025.2.23. 시행). 법이 바뀌면 여기만 고친다. */
 const LEAVE_MONTHS = 12, LEAVE_EXTENDED_MONTHS = 18, SHORT_MONTHS = 12, SHORT_BONUS_RATE = 2;
@@ -97,15 +118,50 @@ function fmtLength(u){
 const shortDate = s => s.slice(2).replace(/-/g, '.');
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-function remaining(child){
-  const used = list => list.reduce((sum, [s, e]) => sum + length(s, e), 0);
-  const leaveUsed = used(child.leaves), shortUsed = used(child.shorts);
-  const leaveLimit = (child.extended ? LEAVE_EXTENDED_MONTHS : LEAVE_MONTHS) * 30;
-  const shortLimit = SHORT_MONTHS * 30 + SHORT_BONUS_RATE * Math.max(0, LEAVE_MONTHS * 30 - leaveUsed);
-  return { leave: leaveLimit - leaveUsed, short: shortLimit - shortUsed };
+/* 기록이 어느 자녀 것인지 정한다.
+   1) child 이름이 있으면 그 자녀  2) 자녀가 1명이면 그 자녀
+   3) 자녀가 여럿이면: 시작일 당시 가장 최근에 태어난 자녀(보통 막내 출생 뒤 쓰는 휴직이므로).
+      시작일보다 먼저 태어난 자녀가 없으면(출산 전 시작) 그 뒤 가장 먼저 태어난 자녀.
+   3) 의 경우는 추정이므로 화면에 * 로 표시한다. */
+function assignChild(children, rec){
+  if(rec.child){
+    const named = children.find(c => c.name === rec.child);
+    if(named) return { child: named, guessed: false };
+  }
+  if(children.length === 1) return { child: children[0], guessed: false };
+  const born = children.filter(c => c.birthDate <= rec.start).sort((a, b) => a.birthDate < b.birthDate ? 1 : -1);
+  const later = children.filter(c => c.birthDate > rec.start).sort((a, b) => a.birthDate < b.birthDate ? -1 : 1);
+  return { child: born[0] || later[0], guessed: true };
 }
 
-const periods = list => list.length ? list.map(([s, e]) => `${shortDate(s)} ~ ${shortDate(e)}`).join('<br>') : '-';
+// 직원의 기록을 중복 제거한 뒤 자녀별로 나눈다
+function splitByChild(emp){
+  const seen = new Set(), byChild = new Map(emp.children.map(c => [c, []]));
+  emp.records.forEach(rec => {
+    const key = [rec.type, rec.start, rec.end, rec.child || ''].join('|');
+    if(seen.has(key)) return;
+    seen.add(key);
+    const { child, guessed } = assignChild(emp.children, rec);
+    if(child) byChild.get(child).push({ ...rec, guessed, t: TYPES[rec.type] || { kind: 'leave', label: rec.type + ' · 미분류' } });
+  });
+  byChild.forEach(list => list.sort((a, b) => a.start < b.start ? -1 : 1));
+  return byChild;
+}
+
+function remaining(recs){
+  const used = list => list.reduce((sum, r) => sum + length(r.start, r.end), 0);
+  const statutoryUsed = used(recs.filter(r => r.t.statutory));
+  const shortUsed = used(recs.filter(r => r.t.kind === 'short'));
+  const leaveLimit = (recs.some(r => r.t.extra) ? LEAVE_EXTENDED_MONTHS : LEAVE_MONTHS) * 30;
+  const shortLimit = SHORT_MONTHS * 30 + SHORT_BONUS_RATE * Math.max(0, LEAVE_MONTHS * 30 - statutoryUsed);
+  return { leave: leaveLimit - statutoryUsed, short: shortLimit - shortUsed };
+}
+
+const periods = list => list.length ? list.map(r =>
+  `${shortDate(r.start)} ~ ${shortDate(r.end)}` +
+  (r.t.label ? ` <span class="pl-sub">(${esc(r.t.label)})</span>` : '') +
+  (r.guessed ? ' <span class="pl-guess" title="DB에 자녀 구분이 없어 자동으로 정한 자녀입니다">*</span>' : '')
+).join('<br>') : '-';
 const remainCell = u => `<td class="pl-num${u < 0 ? ' pl-neg' : ''}">${fmtLength(u)}</td>`;
 
 function render(){
@@ -114,16 +170,17 @@ function render(){
   DATA.filter(emp => !q || [emp.name, emp.empid, emp.dept].join(' ').toLowerCase().includes(q))
     .forEach(emp => {
       const kids = emp.children.length ? emp.children : [null];
+      const byChild = splitByChild(emp);
       kids.forEach((child, i) => {
         // 자녀가 여럿이면 직원 칸은 첫 줄에만 쓰고 세로로 합친다
         const span = `rowspan="${kids.length}"`;
         const empCells = i === 0 ? `<td ${span}>${esc(emp.name)}</td><td ${span}>${esc(emp.empid)}</td><td ${span}>${esc(emp.dept)}</td>` : '';
         if(!child){ rows.push(`<tr>${empCells}<td colspan="5" class="pl-sub">등록된 자녀 없음</td></tr>`); return; }
-        const r = remaining(child);
+        const recs = byChild.get(child), r = remaining(recs);
         rows.push(`<tr>${empCells}
           <td>${esc(child.name)} <span class="pl-sub">(${shortDate(child.birthDate)})</span></td>
-          <td>${periods(child.leaves)}</td>${remainCell(r.leave)}
-          <td>${periods(child.shorts)}</td>${remainCell(r.short)}
+          <td>${periods(recs.filter(x => x.t.kind === 'leave'))}</td>${remainCell(r.leave)}
+          <td>${periods(recs.filter(x => x.t.kind === 'short'))}</td>${remainCell(r.short)}
         </tr>`);
       });
     });
