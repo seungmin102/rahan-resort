@@ -1537,12 +1537,63 @@ function pendingCancelNotices(){
     .sort((a, b) => String(a.date).localeCompare(String(b.date)));
 }
 
-function acknowledgeCancel(ids){
+/* 확인 표시를 시트에도 남긴다.
+   ---------------------------------------------------------
+   확인 기록을 localStorage 에만 두면 PC 에서 누른 걸 휴대폰은 모른다.
+   서버에 "통보했음" 을 적을 칸이 따로 없고, 칸을 만들려면 Code.gs 를 고쳐
+   재배포해야 한다. 그래서 이미 있는 칸을 쓴다 — 취소된 건의 예약번호를 지운다.
+
+   이 알림 자체가 "취소인데 예약번호가 남아 있다" 로 찾아내는 것이므로,
+   번호를 지우면 신호가 사라져 어느 기기에서 열어도 목록에서 빠진다.
+   의미로도 맞다. 호텔 예약을 취소하고 나면 그 번호는 살아 있는 예약이
+   아니고, 직원 조회 화면에 "취소" 와 예약번호가 나란히 뜨는 것도 막는다
+   (호텔이 거절한 건은 이미 같은 이유로 번호를 지우고 있다).
+
+   번호 없이 승인만 돼 있던 건은 지울 게 없어 이 브라우저에만 기록된다. */
+async function acknowledgeCancel(ids){
+  const items = ids.map(id => allApplications.find(a => a.id === id)).filter(Boolean);
+  const withNo = items.filter(i => String(i.reservationNo || '').trim() !== '');
+
+  if(withNo.length){
+    const lines = withNo.map(i => `  · ${i.appNo || '-'} ${i.name} — ${i.reservationNo}`).join('\n');
+    if(!confirm(`호텔에 취소를 알리셨나요?\n\n확인함으로 표시하면서 아래 예약번호를 시트에서 지웁니다.\n`
+      + `(그래야 다른 기기에서도 이 목록에서 빠집니다. 번호가 필요하면 지금 적어 두세요)\n\n${lines}`)) return;
+  }
+
+  // 화면에서 먼저 빼고 요청은 뒤에서 보낸다
   const ack = readStore(CANCEL_ACK_KEY);
   ids.forEach(id => { ack[id] = new Date().toISOString(); });
   writeStore(CANCEL_ACK_KEY, ack);
+  const previous = new Map();
+  withNo.forEach(i => { previous.set(i.id, i.reservationNo); i.reservationNo = ''; });
+  lastDataSignature = null;
   renderCancelAlert();
   renderAdminTable();
+
+  const failed = [], failedIds = [];
+  for(const item of withNo){
+    try{
+      await apiPost('updateReservation', { id: item.id, reservationNo: '' });
+    }catch(err){
+      console.error(err);
+      failed.push(`${item.appNo || '-'} (${item.name})`);
+      failedIds.push(item.id);
+      item.reservationNo = previous.get(item.id);   // 시트는 그대로이므로 화면도 되돌린다
+    }
+  }
+  if(failed.length){
+    /* 시트에 못 적었으면 이 브라우저의 확인 기록도 되돌려야 한다.
+       안 그러면 목록에서는 사라진 채 시트에는 그대로 남아, 담당자가
+       "다시 눌러 주세요" 를 따를 버튼조차 없는 상태가 된다. */
+    const back = readStore(CANCEL_ACK_KEY);
+    failedIds.forEach(id => { delete back[id]; });
+    writeStore(CANCEL_ACK_KEY, back);
+    lastDataSignature = null;
+    renderCancelAlert();
+    renderAdminTable();
+    alert(`${failed.join(', ')} 은(는) 시트에 반영하지 못했습니다.\n`
+      + `목록에 그대로 두었으니 잠시 후 다시 눌러 주세요.`);
+  }
 }
 
 const BASE_TITLE = document.title;
@@ -1560,7 +1611,9 @@ function renderCancelAlert(){
     <h3>⚠ 호텔에 취소를 알려야 하는 건 ${list.length}건</h3>
     <div class="sub">
       예약이 잡힌 뒤 직원이 조회 화면에서 직접 취소한 신청입니다. 호텔 예약은 아직 살아 있으니 취소 요청을 보내 주세요.<br>
-      호텔에 알린 뒤 <b>확인함</b>을 누르면 이 목록에서 사라집니다. (확인 여부는 이 브라우저에만 저장됩니다)
+      호텔에 알린 뒤 <b>확인함</b>을 누르면 이 목록에서 사라집니다.
+      이때 그 건의 <b>예약번호를 시트에서 지웁니다</b> — 취소된 예약이라 번호가 남아 있을 이유가 없고,
+      그래야 <b>다른 기기에서도 함께</b> 사라집니다. 번호가 필요하면 누르기 전에 적어 두세요.
     </div>
     <table><thead><tr>
       <th>신청번호</th><th>이름</th><th>사번</th><th>지점</th><th>이용일</th><th>박수</th><th>예약번호</th><th></th>
@@ -1586,11 +1639,7 @@ function renderCancelAlert(){
   });
   const all = document.getElementById('ackAllCancel');
   if(all){
-    all.addEventListener('click', ()=>{
-      if(confirm(`${list.length}건 모두 호텔에 취소를 알리셨나요?\n확인함으로 표시하면 목록에서 사라집니다.`)){
-        acknowledgeCancel(list.map(i => i.id));
-      }
-    });
+    all.addEventListener('click', ()=> acknowledgeCancel(list.map(i => i.id)));
   }
 }
 
