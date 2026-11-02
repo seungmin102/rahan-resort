@@ -107,6 +107,7 @@
   .cancel-btn:hover{ border-color: var(--red); color: var(--red); }
   .cancel-btn:disabled{ opacity: .55; cursor: default; }
   .lc-note{ margin-top: 12px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.55; }
+  .lc-note.late{ background: #FFF4E5; border: 1px solid #F3C98B; color: #8A5A12; border-radius: 8px; padding: 10px 12px; }
 
   #f-date{ position: relative; }
   .cal-popup{ display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; width: 300px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); padding: 16px; }
@@ -394,6 +395,29 @@ function isHoliday(dateStr){ return HOLIDAYS_2026.has(dateStr); }
 const RANGE_START = '2026-10-01';
 const RANGE_END = '2026-12-31';
 function inAllowedRange(dateStr){ return dateStr >= RANGE_START && dateStr <= RANGE_END; }
+
+/* ═══════════════════════════════════════════════════════════════
+   입실이 임박하면 직원이 화면에서 취소할 수 없게 한다
+   ═══════════════════════════════════════════════════════════════
+   남은 일수가 이 값 이하이면 취소 버튼을 내리고 담당자 연락을 안내한다.
+   10 이면 입실 10일 전(D-10)부터 막히고, 11일 이상 남았을 때만 취소된다.
+   기준을 바꾸려면 이 숫자만 고치면 된다.
+   ※ 이 검사는 신청 화면에서만 한다. 담당자는 관리자 화면에서 언제든
+     상태를 바꿀 수 있으니, 임박한 취소는 담당자를 거치게 된다.
+   ═══════════════════════════════════════════════════════════════ */
+const CANCEL_DEADLINE_DAYS = 10;
+
+// 오늘부터 이용일까지 남은 일수. 자정 기준으로 세어 시각에 따라 달라지지 않게 한다.
+function daysUntil(dateStr){
+  const target = new Date(dateStr + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target - today) / 86400000);
+}
+function canSelfCancel(item){
+  if(item.status !== '대기' && item.status !== '승인') return false;
+  return daysUntil(item.date) > CANCEL_DEADLINE_DAYS;
+}
 
 let blockedDates = new Set();
 
@@ -845,6 +869,8 @@ function renderLookupResults(items){
     const wd = weekdayKo[d.getDay()];
     // 대기·승인 건만 취소할 수 있다. 거절·취소 건은 취소할 게 없다.
     const cancellable = item.status === '대기' || item.status === '승인';
+    const tooLate = cancellable && !canSelfCancel(item);
+    const left = daysUntil(item.date);
     return `
     <div class="lookup-card">
       <div class="lc-top">
@@ -859,10 +885,20 @@ function renderLookupResults(items){
         ${item.reservationNo ? `<dt>예약번호</dt><dd>${escapeHtml(item.reservationNo)}</dd>` : ''}
       </dl>
       ${item.status === '승인'
-        ? '<div class="lc-note">예약 확정 안내는 하이웍스 메일로 별도 발송됩니다.<br>사정이 생기면 <b>이용일 전에 꼭 취소</b>해 주세요. 호텔 예약이 함께 취소됩니다.</div>' : ''}
-      ${cancellable
+        ? '<div class="lc-note">예약 확정 안내는 하이웍스 메일로 별도 발송됩니다.'
+          + (tooLate ? '' : '<br>사정이 생기면 <b>입실 ' + (CANCEL_DEADLINE_DAYS + 1) + '일 전까지 취소</b>해 주세요. 호텔 예약이 함께 취소됩니다.')
+          + '</div>' : ''}
+      ${cancellable && !tooLate
         ? `<button type="button" class="cancel-btn" data-id="${escapeHtml(item.id)}">신청 취소하기</button>`
-        : (item.status === '취소' ? '<div class="lc-note">취소된 신청입니다.</div>' : '')}
+        : ''}
+      ${tooLate
+        ? `<div class="lc-note late">${
+            left < 0  ? '이용일이 지난 신청입니다. 처리가 필요하면 <b>담당자에게 연락</b>해 주세요.' :
+            left === 0 ? '오늘 입실이라 화면에서는 취소할 수 없습니다. <b>담당자에게 연락</b>해 주세요.' :
+            `입실까지 ${left}일 남아 화면에서는 취소할 수 없습니다.<br>입실 ${CANCEL_DEADLINE_DAYS}일 전부터는 <b>담당자에게 연락</b>해 주세요.`
+          }</div>`
+        : ''}
+      ${!cancellable && item.status === '취소' ? '<div class="lc-note">취소된 신청입니다.</div>' : ''}
     </div>`;
   }).join('');
 
@@ -878,6 +914,12 @@ async function cancelMyApplication(btn){
 
   /* 승인된 건은 호텔에 예약이 잡혀 있다. 담당자 화면에 자동으로 뜨긴 하지만,
      "취소 버튼만 누르면 끝" 이라고 생각하고 가볍게 누르는 걸 막아야 한다. */
+  if(!canSelfCancel(item)){
+    alert(`입실 ${CANCEL_DEADLINE_DAYS}일 전부터는 화면에서 취소할 수 없습니다.\n담당자에게 연락해 주세요.`);
+    renderLookupResults(lookupItems);
+    return;
+  }
+
   const confirmed = item.status === '승인';
   const extra = confirmed
     ? '\n\n⚠ 호텔 예약이 확정된 신청입니다.\n취소하면 담당자가 호텔에 취소를 요청하게 됩니다.'
