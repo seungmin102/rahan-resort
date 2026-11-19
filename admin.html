@@ -789,8 +789,29 @@ document.getElementById('selectAll').addEventListener('change', (e)=>{
    요청마다 스크립트 락을 잡고 시트를 다시 읽기 때문에, 건수가 늘면
    뒤쪽 요청이 락 대기 시간을 넘겨 실패한다. */
 async function bulkUpdateStatus(status){
-  const targets = [...selectedIds];
-  if(targets.length === 0) return;
+  /* 취소된 신청은 일괄 승인·거절에서 뺀다.
+     "전체" 탭에서 전체 선택 후 일괄 승인을 누르면 직원이 취소한 건까지
+     승인으로 바뀌는데, 조용히 일어나서 알아채기 어렵다. 호텔에 취소를
+     통보까지 끝낸 건이 다시 승인 상태로 돌아가면 그대로 예약이 살아 있는
+     것처럼 보인다. 한 건만 되돌려야 할 때는 표의 상태 드롭다운을 쓰면 된다. */
+  const cancelled = [...selectedIds].filter(id=>{
+    const item = allApplications.find(a=>a.id===id);
+    return item && item.status === '취소';
+  });
+  const targets = [...selectedIds].filter(id => cancelled.indexOf(id) === -1);
+
+  if(targets.length === 0){
+    if(cancelled.length){
+      selectedIds.clear();
+      renderAdminTable();
+      alert(`선택한 ${cancelled.length}건이 모두 취소된 신청이라 ${status} 처리할 수 없습니다.\n`
+        + `꼭 바꿔야 한다면 표에서 그 줄의 상태를 직접 선택해 주세요.`);
+    }
+    return;
+  }
+  if(cancelled.length){
+    alert(`취소된 신청 ${cancelled.length}건은 제외하고 ${targets.length}건만 ${status} 처리합니다.`);
+  }
 
   /* 화면을 먼저 바꾸고 요청은 뒤에서 보낸다.
      Apps Script 왕복이 1~3초라, 응답을 기다렸다가 표를 갱신하면 그 시간 동안
